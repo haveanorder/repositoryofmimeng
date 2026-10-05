@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0-c1.20261005",
+  "version": "0.0.0-c1.20261005.1",
   "baseCommit": "de6d1a28ba577358d4bb03ae78ba32f9b87050c0",
   "scheme": "C",
   "schemeDIncluded": false,
@@ -7,35 +7,36 @@
   "containedArtifacts": [
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip",
-      "bytes": 486367100,
-      "sha256": "ecb14662a89c09262647d5a469d2c1cf1dab113f08cfc4e7f74b794308be0546"
+      "bytes": 486385460,
+      "sha256": "aabe9f4971464f38eb92e19adf7dda3e57d2137a7ff29210e386e0b44eb1cce5"
     },
     {
       "file": "Netcatty-C1-Windows-x64-Setup.exe",
-      "bytes": 138608396,
-      "sha256": "b1e8ce51166efd70d94adfa7bbffd5480c430ffdb4080bf310af3ea10b70f96f"
+      "bytes": 138608407,
+      "sha256": "ca09b10fcca143475b8ace4bfa68ef8f556111c7ad1698068ac42127a6b26785"
     },
     {
       "file": "Netcatty-C1-Windows-x64-Portable.exe",
-      "bytes": 138365527,
-      "sha256": "636699b0228c804545e6070494c924483f31bcdf607228c4048a3921a21dc646"
+      "bytes": 138365632,
+      "sha256": "de45f74b605db2167b8e929f36882034d5cb61f3fcb72d19d0f05dc5f5421cf3"
     },
     {
       "file": "Netcatty-C1-Source.zip",
-      "bytes": 18402629,
-      "sha256": "8a66d13ddc77bf7bff753aaabae87a53d76df15c421996ab283a99098f709699"
+      "bytes": 18403824,
+      "sha256": "363dc14eb1a05857d33777c09f88340b8d9110a06dc69f5830c4ac69c0ab1b66"
     },
     {
       "file": "Netcatty-C1-Work-Records-20261005.zip",
-      "bytes": 276591,
-      "sha256": "121ede9ef9d41b36cc2bff4b125db00e5b4ea44717d5873678291e3706c5d3ea"
+      "bytes": 282998,
+      "sha256": "dec7debbf51bdef715f9e8f2e7ced40ee4c714dc2782ce4053cabd69fdc3eab4"
     }
   ],
   "transport": {
     "method": "Git repository with 20 verified binary parts",
     "package": "package/parts.json",
     "merge": "package/Merge-Netcatty.cmd",
-    "download": "https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005.zip",
+    "download": "https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005-r2.zip",
     "releaseBinaryAssets": false
-  }
+  },
+  "applicationPackageName": "netcatty-c1"
 }

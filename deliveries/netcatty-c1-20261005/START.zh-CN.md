@@ -5,13 +5,15 @@
 
 ## 启动
 
-1. 安装 Node.js 24。解压源码包，在其目录运行：
+1. **已经安装 Agent 时，先复用现有 CLI。** 运行 `omp --version`、`pi --version`、`dsh --version` 核对下表版本；匹配时直接进入下一步，在设置中填写现有 CLI 路径，无需重复安装。版本更高不代表与本预览桥接兼容，不要降级或覆盖全局安装。
+
+   只有需要另装已验证版本时，安装 Node.js 24，解压源码包，在其目录运行：
 
    ```powershell
    node scripts/install-native-agents.cjs "$env:USERPROFILE\.netcatty-native"
    ```
 
-   安装脚本下载 OMP 官方独立程序并核验 SHA256，同时安装指定版本的 Pi 和 DSH。
+   安装脚本将引擎放入独立目录，不执行全局 npm 安装，也不改 PATH。它下载 OMP 官方独立程序并核验 SHA256，同时安装指定版本的 Pi 和 DSH。
    完成后会输出三个 CLI 路径，并保存到安装目录的 `engines.json`。
    引擎单独安装，不包含在 Netcatty 安装包内。
 
@@ -49,12 +51,14 @@
 
 ## Windows 交付
 
-本次预览版本为 `0.0.0-c1.20261005`，应用名称 **Netcatty C1**，提供 x64 安装程序、
-便携程序与解压运行 ZIP。使用独立应用标识，未进行代码签名，也未发布到 GitHub。
+本次预览版本为 `0.0.0-c1.20261005.1`，应用名称 **Netcatty C1**，提供 x64 安装程序、
+便携程序与解压运行 ZIP。使用独立应用标识与包名 `netcatty-c1`，默认用户数据目录为 `%APPDATA%\netcatty-c1`；不自动导入正式版配置，不注册安装右键菜单，首次启动不接管 SSH/Telnet 协议。未进行代码签名，已交付至用户指定 GitHub 仓库。
 
 Windows Hello、ConPTY 补丁和进程树模块从源码交叉编译；其他平台依赖使用官方发行资源。
 完整工具版本和复现方法见 [英文技术记录](native-agents-c.md#windows-cross-build-notes)。
 Windows 本机源码构建仍使用 `npm run pack:win-x64`，需现有 MSVC 构建工具。
+
+如需使用旧的首发便携版，请将它放在独立文件夹，启动前在旁边新建 `data` 文件夹，以启用已有便携数据目录支持。不要用首发安装版覆盖日常配置；推荐使用修订版。
 
 ## 验证与限制
 

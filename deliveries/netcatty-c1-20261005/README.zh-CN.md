@@ -1,10 +1,10 @@
 # Netcatty 方案 C 云端交付
 
-预览版本：`0.0.0-c1.20261005`。Windows 程序、完整源码、补丁、启动说明、截图、工作记录与验证日志均已整理到本仓库。
+预览版本：`0.0.0-c1.20261005.1`。Windows 程序、完整源码、补丁、启动说明、截图、工作记录与验证日志均已整理到本仓库。
 
 ## 下载与 Windows 安装
 
-1. **[下载完整交付仓库 ZIP](https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005.zip)**，约 485 MiB。GitHub Release 页面中的 **Source code (zip)** 也是同一个包；本仓库的 ZIP 已包含实际交付分卷，并非只有源码。
+1. **[下载完整交付仓库 ZIP](https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005-r2.zip)**，约 485 MiB。GitHub Release 页面中的 **Source code (zip)** 也是同一个包；本仓库的 ZIP 已包含实际交付分卷，并非只有源码。
 2. 将下载的 ZIP 整个解压，进入 `deliveries/netcatty-c1-20261005/package`。
 3. 双击 **`Merge-Netcatty.cmd`**，等待显示 `Complete. SHA256 verified.`。脚本把 20 个分卷还原为 `Netcatty-C1-Delivery-With-Worklog-20261005.zip`（463.84 MiB），并核对 SHA256。
 4. 解压还原的 ZIP，进入 `C1`，运行 **`Netcatty-C1-Windows-x64-Setup.exe`**；也可选择 Portable.exe 便携版或 Windows-x64.zip。
@@ -39,3 +39,7 @@ Windows 文件未签名；尚未验证真实 Windows/macOS 桌面、真实云模
 工作记录包保留整理时的检查快照，其中 Google Drive 凭据未生效的记录属于传输过程历史；用户随后指定本 GitHub 仓库作为交付位置。此环境的 Release 二进制附件接口返回 Content-Length 错误，因此完整程序通过已校验的 Git 分卷交付。
 
 Netcatty 源码来自 haveanorder/Netcatty，补丁基线为 `de6d1a28ba577358d4bb03ae78ba32f9b87050c0`。源码 ZIP 保留原项目许可证与第三方声明，具体许可按各自文件适用。
+
+## 已有安装的用户
+
+本修订版使用独立数据目录，避免影响正式版。请先阅读 [已有安装与共存说明](EXISTING-INSTALLATIONS.zh-CN.md)。已有三类 Agent 时先核对版本并填写现有 CLI 路径，无需重复安装或全局降级。

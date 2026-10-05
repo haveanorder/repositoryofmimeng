@@ -204,3 +204,12 @@ official `UninstallerReader` (also used by its macOS path) to extract the NSIS
 generated uninstaller. This avoids running the bootstrap through Wine in this
 cloud environment; the standard NSIS installer script is retained. This config
 is for the unsigned preview build only.
+
+
+## Existing installations and C1 coexistence revision
+
+The Windows preview revision `0.0.0-c1.20261005.1` sets package name `netcatty-c1`, not only the builder product name and app ID. Electron and the standalone CLI discovery fallback therefore agree on a separate default userData directory (`%APPDATA%\netcatty-c1` on Windows). No existing standard Netcatty profile is automatically copied. Installer URL protocol entries and the standard Explorer-menu include are omitted for this preview. A new preview profile defaults SSH/Telnet handling to disabled; an explicit saved user preference still takes precedence. Normal Netcatty builds retain their defaults.
+
+Existing CLI installations can be selected directly when their versions match the verified table. A newer version is not silently accepted or globally downgraded. The optional installer uses an isolated prefix and leaves global npm packages and PATH unchanged. Obtain actual installed versions before deciding whether a newer native protocol can be supported.
+
+The original preview package had only a separate installer identity/product name; that was insufficient to guarantee default Electron profile isolation. Prefer the revised preview. If using the original portable build, put it in its own folder and create a neighboring `data` directory before first launch, using Netcatty's existing portable-data behavior.

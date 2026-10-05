@@ -1,0 +1,23 @@
+
+7-Zip (z) 24.09 (x64) : Copyright (c) 1999-2024 Igor Pavlov : 2024-11-28
+ 64-bit locale=C.UTF-8 Threads:5 OPEN_MAX:16384, ASM
+
+Scanning the drive for archives:
+1 file, 138608407 bytes (133 MiB)
+
+Testing archive: /workspace/deliverables/netcatty-c1/Netcatty-C1-Windows-x64-Setup.exe
+--
+Path = /workspace/deliverables/netcatty-c1/Netcatty-C1-Windows-x64-Setup.exe
+Type = Nsis
+Physical Size = 138608407
+Method = Deflate
+Solid = -
+Headers Size = 216748
+Embedded Stub Size = 82432
+SubType = NSIS-3 Unicode
+
+Everything is Ok
+
+Files: 10
+Size:       137991275
+Compressed: 138608407

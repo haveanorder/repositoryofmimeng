@@ -16,3 +16,11 @@
 尚未验证：真实 Windows/macOS 桌面、真实云模型、SSH/SFTP 服务端、Windows Hello 生物认证和跨版本引擎升级。Windows 构建未签名。
 
 所有构建均未推送、合并或发布 GitHub release。
+
+## 共存修订版 0.0.0-c1.20261005.1
+
+- 修正 Electron 包名为 netcatty-c1；实际 Electron 探针确认默认数据目录与 netcatty 不同，Windows 包内元数据与源码一致。
+- 预览安装不注册正式版 Explorer 菜单和 URL 协议；新配置默认不接管 SSH/Telnet，显式保存的开关仍优先。
+- 原有 deepLink 与 portableData 两个相关测试文件通过；修改文件 lint 无错误。
+- Windows 三种产物重新生成，ZIP CRC 和已修改主进程文件一致性检查通过。
+- 仍未在真实 Windows 桌面验证；Agent 最新版兼容性需先取得用户版本号，保留已验证版本约束。

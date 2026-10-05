@@ -1,107 +1,107 @@
 {
   "archive": "Netcatty-C1-Delivery-With-Worklog-20261005.zip",
-  "archiveBytes": 486367100,
-  "archiveSha256": "ecb14662a89c09262647d5a469d2c1cf1dab113f08cfc4e7f74b794308be0546",
+  "archiveBytes": 486385460,
+  "archiveSha256": "aabe9f4971464f38eb92e19adf7dda3e57d2137a7ff29210e386e0b44eb1cce5",
   "parts": [
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part01",
       "bytes": 25165824,
-      "sha256": "5a3879d0beecde944b493b2456cec03eac7bb036420c0faea55fd8869818f458"
+      "sha256": "90d33554b3d6da8c662ef49de44759bd702c830cfddb24f4d9061d97a3a0759f"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part02",
       "bytes": 25165824,
-      "sha256": "90eda4385226ea8b6d628d1517d851c974576de4b0e870f5a38b73e1f4567832"
+      "sha256": "52abc381e91d5106d69611aa501d55f08561430152639a9b021fdf85ce0b6243"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part03",
       "bytes": 25165824,
-      "sha256": "9936cd0729058b709e84a81ed63e1bd042db3d1141bcf15389d7bca18264c375"
+      "sha256": "92b40201f2d6f71b0cb554935852235e8dddfa3446e5788c693ea06720cc72c3"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part04",
       "bytes": 25165824,
-      "sha256": "cad65123e25682dc0ecdf99ce36d90b32142ed8ffb3f825156732c779634b098"
+      "sha256": "c411cb994f0fa877c00252f1e6cfc16db3e133e0e628e5eda5e4b84a1382ba8d"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part05",
       "bytes": 25165824,
-      "sha256": "e42ff1ce803c7bbb350430736978cf642e950e303cefc2a543ebfc8632121eda"
+      "sha256": "d72ba308da91b4d8c6ffcc86fdd5cce7c2e7aeff8db93aae153139d8cbd32fba"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part06",
       "bytes": 25165824,
-      "sha256": "71181aa4a12ac8c2bf8b53b01fa5bf5fb11b4ccc0e929f03dfe887d089a940d8"
+      "sha256": "fc95432b3671b0cb3d5eb5ddf890bce1a4ae7e0169aa71942d589331451fdafa"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part07",
       "bytes": 25165824,
-      "sha256": "c7e268f527c73686a9856ff58687854d809b9699dc6713f9a81c37f11197caf0"
+      "sha256": "b5ccef87247291debba4978715b687a4e17867b5ccfca4912462bb2d5244bdd3"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part08",
       "bytes": 25165824,
-      "sha256": "c33aaf2cd55919ac4196cda7172344c2ab73ce5bc4b03c815efcdd7122640902"
+      "sha256": "fbfc144afad9e25923ef7c999383837b0c51fd2bbc7597c32353111a064d586f"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part09",
       "bytes": 25165824,
-      "sha256": "2001b2aaa24aab76ae204d3cad97643591b7d3b6f45e482dc8de0cf48fce33bf"
+      "sha256": "9c238adbb142dcabc45f8700fe025ef1f3de8f1fd8a2bdf4e262893f11ec6537"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part10",
       "bytes": 25165824,
-      "sha256": "f113c18c3fd86962e7c646aa7fa3e774a7acbcb5578787c742401ee9fa3b559b"
+      "sha256": "4f5615ed4f108eb80f7782485c3d3d25d0d665ed16c6cb3e720ddba0127b48e3"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part11",
       "bytes": 25165824,
-      "sha256": "2d6c83f7e1427b13820631e03b0f816e698355492f24e2ece94ec8ce85a3d2fd"
+      "sha256": "3ccb7e4fcc97c018083a5fe0ca67a455a31b92ec63cd67442d55b16f245b2b1f"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part12",
       "bytes": 25165824,
-      "sha256": "fcf805cb47dcaf4abcf7f42587571b091abbf0fef4262fab6a83a4f1a8b579b4"
+      "sha256": "57fd5ef44abda008c18d58c4877d67899d43267ad65e0318cc1666994c4e706c"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part13",
       "bytes": 25165824,
-      "sha256": "d3b0466986753c3ecd4626f222852db3b6872dcb7f82a55e2e297a998aaaeb62"
+      "sha256": "37c08b1b2d77046de6bd5ddf1e14602e6a0adb5ba6c977f3c9537e47f1b4426a"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part14",
       "bytes": 25165824,
-      "sha256": "d2d5b800ee61241ec02d7f088b097e2d9c8357f153d0c250635504f5b0d05e1a"
+      "sha256": "3a43734c65e36011664762e2051e1f7d01182a088587d8e0120b606fe5745b26"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part15",
       "bytes": 25165824,
-      "sha256": "ffc20b7115506f0bdb6a55dd232a154eff8ce73d915297807e7734f031faa51d"
+      "sha256": "64be064e9804c6b471960474733d9a07044d72b3c3ad555dc3141f9f41b67c81"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part16",
       "bytes": 25165824,
-      "sha256": "ad7b79b311c1e8278c0f8c91f5e2466c586c2d7935746da2ea3546d73b21d63e"
+      "sha256": "75677d8637d966dbc4ae5f8cb44beb452da2dcc3389e6299a54c907e4efda415"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part17",
       "bytes": 25165824,
-      "sha256": "34a08d5fc6b467db78642f53da0b0c5e440544c799a2fd16b8391944de378726"
+      "sha256": "7285fed3d153750a917d1466aa0585c105b79900551a1548ef2e443102497f30"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part18",
       "bytes": 25165824,
-      "sha256": "1b35b6a21adfdd733f433199b1aeb260dcf62ed63a76a4a7b558086936117c5c"
+      "sha256": "04a22f31291006061ead1d8d536d17b1018fb3ca9f24dfb262b2b96037df6fe3"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part19",
       "bytes": 25165824,
-      "sha256": "7f89d3811c2ca5529687389ed5ae193dc3854bdb1463aadfec18bd9b45406b68"
+      "sha256": "06cbae193257fc66f1314764030fa37604f81ff58c034b3782a595d37f5e326b"
     },
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip.part20",
-      "bytes": 8216444,
-      "sha256": "6c986384288bfdaac61a03c362b7602eb289593630be46880ce83256880122d3"
+      "bytes": 8234804,
+      "sha256": "b128f9175f4c85dab00e379a267e1ec06b459edc3c0aff510e39fc961c8da0b6"
     }
   ]
 }
