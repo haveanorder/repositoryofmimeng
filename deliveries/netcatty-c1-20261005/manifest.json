@@ -27,8 +27,8 @@
     },
     {
       "file": "Netcatty-C1-Work-Records-20261005.zip",
-      "bytes": 285278,
-      "sha256": "bf758a979867479064afb24f73a1f2d8decedba9f2a52b347224ef778944b3a4"
+      "bytes": 298783,
+      "sha256": "dc0081dab5779d2ff441f9082cb8b4cde2d9a07fa68c759bd88ee407e2233226"
     }
   ],
   "transport": {
@@ -41,8 +41,16 @@
   "applicationPackageName": "netcatty-c1",
   "sourcePatchPackage": {
     "file": "Netcatty-C1-Source-Patch-20261005.zip",
-    "bytes": 66390,
-    "sha256": "bd2531b5c3214b3131016b39f40878cbec1bbb2bcb3c1c3765a73f1fc0ca4fd6",
+    "bytes": 66397,
+    "sha256": "f31f3647e519fd200f40fd6ccf2fce3f1aa71fabda5d8bfcbc16931e3b3c7d4e",
     "baseCommit": "de6d1a28ba577358d4bb03ae78ba32f9b87050c0"
+  },
+  "windowsPatchPackage": {
+    "file": "Netcatty-C1-Windows-Patch-from-1.1.83-20261005.zip",
+    "bytes": 15449719,
+    "sha256": "6aaaf195efed030c20e84cdd6f208409cd0c060ebd32e800f28262ec11039de3",
+    "fromVersion": "1.1.83",
+    "platform": "win32-x64",
+    "windowsRuntimeTested": false
   }
 }

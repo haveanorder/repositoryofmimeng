@@ -1,0 +1,24 @@
+{
+  "from": "official Windows x64 1.1.83",
+  "target": "Netcatty C1 0.0.0-c1.20261005.2",
+  "check": "passed",
+  "apply": "passed",
+  "targetFilesComparedWithActualWindowsBuild": 997,
+  "rollback": "all 1144 original files restored exactly",
+  "unlistedFilePreserved": true,
+  "changedBaselineRejected": true,
+  "host": "Linux Node.js 24; actual Windows application files",
+  "windowsRuntimeTested": false,
+  "commands": [
+    "Checking installed files against official Netcatty 1.1.83 Windows x64...\nOfficial Netcatty 1.1.83 Windows x64 matched. No files changed. Run again with apply.\n",
+    "Checking installed files against official Netcatty 1.1.83 Windows x64...\nBacking up original files and preparing C1 files. This can take a few minutes...\nApplying the prepared program files...\nVerifying the C1 program files...\nUpdated to Netcatty C1 0.0.0-c1.20261005.2. Start Netcatty.exe using your existing shortcut.\nC1 uses its own profile in %APPDATA%\\netcatty-c1. Your original profile is preserved.\nProgram backup retained at: /workspace/.netcatty-native/windows/patch-test-1.1.83/.netcatty-c1-1.1.83-backup\n",
+    "Checking the backup and restoring Netcatty 1.1.83...\nRestored Netcatty 1.1.83. User profiles and Agent installations were not changed.\n"
+  ],
+  "officialInstallerBaselineFilesMatched": 1144,
+  "installerExtras": [
+    "resources/elevate.exe"
+  ],
+  "targetComparison": "Canonical C1 Windows ZIP; Netcatty C1.exe renamed to Netcatty.exe",
+  "installerElevatePreserved": true,
+  "officialInstallerSha256": "2307e81cabb9c7d397cfcbca00842eb2207ad5b563336ce8b99d808d1560b921"
+}

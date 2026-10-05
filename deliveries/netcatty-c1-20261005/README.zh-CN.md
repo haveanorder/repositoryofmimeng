@@ -16,7 +16,8 @@
 - [完整源码 ZIP（17.55 MiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Source.zip)
 - [工作记录 ZIP（约 270 KiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Work-Records-20261005.zip)
 - [源码补丁](Netcatty-C1-Changes.patch)、[SHA256 校验值](SHA256SUMS.txt)、[分卷清单与校验值](package/parts.json)
-- [独立源码补丁 ZIP（约 65 KiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Source-Patch-20261005.zip)：含检查、应用和回退脚本；请先读 [补丁说明](PATCH.zh-CN.md)。用于源码仓库，不直接覆盖 Windows 安装目录。
+- [独立源码补丁 ZIP（约 65 KiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/tags/netcatty-c1-patches-20261005/deliveries/netcatty-c1-20261005/Netcatty-C1-Source-Patch-20261005.zip)：含检查、应用和回退脚本；请先读 [补丁说明](PATCH.zh-CN.md)。用于源码仓库，不直接覆盖 Windows 安装目录。
+- [Windows 1.1.83 程序补丁 ZIP（约 15 MB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/tags/netcatty-c1-patches-20261005/deliveries/netcatty-c1-20261005/Netcatty-C1-Windows-Patch-from-1.1.83-20261005.zip)：从官方 1.1.83 x64 更新到 C1，附备份和回退；请先读 [Windows 补丁说明](WINDOWS-PATCH-1.1.83.zh-CN.md)。已实际验证文件应用和回退，未在 Windows 桌面运行。
 
 ## 实现与启动
 

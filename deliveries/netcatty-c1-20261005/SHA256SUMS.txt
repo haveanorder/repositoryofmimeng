@@ -2,5 +2,6 @@
 f452de325a3ea4f4eed5ffaecee4efc53d770b80034032a38167b4004df99903  Netcatty-C1-Windows-x64-Setup.exe
 dae41879024f5bc49c75cdd472bda6653b1edfbce757b868a442a062f8c80d55  Netcatty-C1-Windows-x64-Portable.exe
 aa65cddf37790f87129378943eed563d2ec9b118c0464c6bde6f113f71225dc8  Netcatty-C1-Source.zip
-bf758a979867479064afb24f73a1f2d8decedba9f2a52b347224ef778944b3a4  Netcatty-C1-Work-Records-20261005.zip
-bd2531b5c3214b3131016b39f40878cbec1bbb2bcb3c1c3765a73f1fc0ca4fd6  Netcatty-C1-Source-Patch-20261005.zip
+f31f3647e519fd200f40fd6ccf2fce3f1aa71fabda5d8bfcbc16931e3b3c7d4e  Netcatty-C1-Source-Patch-20261005.zip
+6aaaf195efed030c20e84cdd6f208409cd0c060ebd32e800f28262ec11039de3  Netcatty-C1-Windows-Patch-from-1.1.83-20261005.zip
+dc0081dab5779d2ff441f9082cb8b4cde2d9a07fa68c759bd88ee407e2233226  Netcatty-C1-Work-Records-20261005.zip
