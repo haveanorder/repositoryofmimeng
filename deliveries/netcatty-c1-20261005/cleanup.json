@@ -1,0 +1,225 @@
+{
+  "removed": [
+    {
+      "path": "/workspace/.netcatty-setup/npm-cache/_cacache",
+      "allocatedBytes": 1290915840
+    },
+    {
+      "path": "/workspace/.netcatty-setup/cache/electron-builder/wine@1.0.1",
+      "allocatedBytes": 197435392
+    },
+    {
+      "path": "/workspace/.netcatty-native/windows/sysroot/usr/lib/x86_64-linux-gnu/wine",
+      "allocatedBytes": 751312896
+    },
+    {
+      "path": "/workspace/.netcatty-native/windows/sysroot/usr/share/wine",
+      "allocatedBytes": 11747328
+    },
+    {
+      "path": "/workspace/.netcatty-native/windows/stage/release",
+      "allocatedBytes": 990642176
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/bsdextrautils_2.41.5-0+deb13u1_amd64.deb",
+      "allocatedBytes": 98304
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/clang-19_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 118784
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/clang-tools-19_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 8953856
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/fish-common_4.0.2-1_all.deb",
+      "allocatedBytes": 2064384
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/fish_4.0.2-1_amd64.deb",
+      "allocatedBytes": 1884160
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/fonts-wine_10.0~repack-6_all.deb",
+      "allocatedBytes": 196608
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/groff-base_1.23.0-9_amd64.deb",
+      "allocatedBytes": 1187840
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/lib32gcc-s1_14.2.0-19_amd64.deb",
+      "allocatedBytes": 90112
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/lib32stdc++6_14.2.0-19_amd64.deb",
+      "allocatedBytes": 745472
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libasound2-plugins_1.2.12-2+b1_amd64.deb",
+      "allocatedBytes": 73728
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc-bin_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 638976
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc-dev-bin_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 61440
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc-l10n_2.41-12+deb13u4_all.deb",
+      "allocatedBytes": 741376
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc6-dev_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 1994752
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc6-i386_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 2539520
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libc6_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 2846720
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libcapi20-3t64_1%3a3.27-3.2+b1_amd64.deb",
+      "allocatedBytes": 28672
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libclang-common-19-dev_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 741376
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libclang-cpp19_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 13193216
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libclang-rt-19-dev_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 3690496
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libffi-dev_3.4.8-2_amd64.deb",
+      "allocatedBytes": 61440
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libncurses-dev_6.5+20250216-2_amd64.deb",
+      "allocatedBytes": 356352
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libobjc-14-dev_14.2.0-19_amd64.deb",
+      "allocatedBytes": 176128
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libobjc4_14.2.0-19_amd64.deb",
+      "allocatedBytes": 45056
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libosmesa6_25.0.7-2+deb13u1_amd64.deb",
+      "allocatedBytes": 3198976
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libpcap0.8t64_1.10.5-2_amd64.deb",
+      "allocatedBytes": 172032
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libpfm4_4.13.0+git99-gc5587f9-1_amd64.deb",
+      "allocatedBytes": 372736
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libpipeline1_1.5.8-1_amd64.deb",
+      "allocatedBytes": 45056
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libspeexdsp1_1.2.1-3_amd64.deb",
+      "allocatedBytes": 45056
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libuchardet0_0.0.8-1+b2_amd64.deb",
+      "allocatedBytes": 69632
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libwine_10.0~repack-6_amd64.deb",
+      "allocatedBytes": 111366144
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libxkbregistry0_1.7.0-2_amd64.deb",
+      "allocatedBytes": 16384
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libxml2-dev_2.12.7+dfsg+really2.9.14-2.1+deb13u3_amd64.deb",
+      "allocatedBytes": 798720
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libz-mingw-w64_1.3.1+dfsg-2_all.deb",
+      "allocatedBytes": 159744
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/libz3-dev_4.13.3-1_amd64.deb",
+      "allocatedBytes": 110592
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/lld-19_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 1376256
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/llvm-19-dev_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 43122688
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/llvm-19-linker-tools_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 1265664
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/llvm-19-runtime_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 552960
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/llvm-19-tools_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 512000
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/llvm-19_1%3a19.1.7-3+b1_amd64.deb",
+      "allocatedBytes": 16388096
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/locales-all_2.41-12+deb13u4_amd64.deb",
+      "allocatedBytes": 11165696
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/man-db_2.13.1-1_amd64.deb",
+      "allocatedBytes": 1470464
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/wine64_10.0~repack-6_amd64.deb",
+      "allocatedBytes": 274432
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/wine_10.0~repack-6_all.deb",
+      "allocatedBytes": 73728
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/xsel_1.2.1-1_amd64.deb",
+      "allocatedBytes": 20480
+    },
+    {
+      "path": "/workspace/.netcatty-setup/apt/cache/archives/xvfb_2%3a21.1.16-1.3+deb13u3_amd64.deb",
+      "allocatedBytes": 3198976
+    }
+  ],
+  "allocatedBytesRemoved": 3480358912,
+  "freeBytesBefore": 9927036928,
+  "freeBytesAfter": 12582260736,
+  "sourceGitStatusUnchanged": true,
+  "preserved": [
+    "/workspace/Netcatty",
+    "/workspace/deliverables/netcatty-c1",
+    "Installed official engines and source snapshots",
+    "Windows staging source/dependencies, LLVM, xwin SDK, native modules",
+    "Linux packaged application"
+  ],
+  "driveUpload": "pending: credential unavailable in current runtime",
+  "schemeD": "not present in this isolated workspace; no D files included"
+}

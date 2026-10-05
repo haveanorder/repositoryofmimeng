@@ -1,0 +1,34 @@
+{
+  "version": "0.0.0-c1.20261005",
+  "baseCommit": "de6d1a28ba577358d4bb03ae78ba32f9b87050c0",
+  "scheme": "C",
+  "schemeDIncluded": false,
+  "windowsSigned": false,
+  "assets": [
+    {
+      "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip",
+      "bytes": 486367100,
+      "sha256": "ecb14662a89c09262647d5a469d2c1cf1dab113f08cfc4e7f74b794308be0546"
+    },
+    {
+      "file": "Netcatty-C1-Windows-x64-Setup.exe",
+      "bytes": 138608396,
+      "sha256": "b1e8ce51166efd70d94adfa7bbffd5480c430ffdb4080bf310af3ea10b70f96f"
+    },
+    {
+      "file": "Netcatty-C1-Windows-x64-Portable.exe",
+      "bytes": 138365527,
+      "sha256": "636699b0228c804545e6070494c924483f31bcdf607228c4048a3921a21dc646"
+    },
+    {
+      "file": "Netcatty-C1-Source.zip",
+      "bytes": 18402629,
+      "sha256": "8a66d13ddc77bf7bff753aaabae87a53d76df15c421996ab283a99098f709699"
+    },
+    {
+      "file": "Netcatty-C1-Work-Records-20261005.zip",
+      "bytes": 276591,
+      "sha256": "121ede9ef9d41b36cc2bff4b125db00e5b4ea44717d5873678291e3706c5d3ea"
+    }
+  ]
+}
