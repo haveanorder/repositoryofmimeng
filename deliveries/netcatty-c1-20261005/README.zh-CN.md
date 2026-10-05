@@ -1,10 +1,10 @@
 # Netcatty 方案 C 云端交付
 
-预览版本：`0.0.0-c1.20261005.1`。Windows 程序、完整源码、补丁、启动说明、截图、工作记录与验证日志均已整理到本仓库。
+预览版本：`0.0.0-c1.20261005.2`。Windows 程序、完整源码、补丁、启动说明、截图、工作记录与验证日志均已整理到本仓库。
 
 ## 下载与 Windows 安装
 
-1. **[下载完整交付仓库 ZIP](https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005-r2.zip)**，约 485 MiB。GitHub Release 页面中的 **Source code (zip)** 也是同一个包；本仓库的 ZIP 已包含实际交付分卷，并非只有源码。
+1. **[下载完整交付仓库 ZIP](https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005-r3.zip)**，约 485 MiB。GitHub Release 页面中的 **Source code (zip)** 也是同一个包；本仓库的 ZIP 已包含实际交付分卷，并非只有源码。
 2. 将下载的 ZIP 整个解压，进入 `deliveries/netcatty-c1-20261005/package`。
 3. 双击 **`Merge-Netcatty.cmd`**，等待显示 `Complete. SHA256 verified.`。脚本把 20 个分卷还原为 `Netcatty-C1-Delivery-With-Worklog-20261005.zip`（463.84 MiB），并核对 SHA256。
 4. 解压还原的 ZIP，进入 `C1`，运行 **`Netcatty-C1-Windows-x64-Setup.exe`**；也可选择 Portable.exe 便携版或 Windows-x64.zip。
@@ -16,6 +16,7 @@
 - [完整源码 ZIP（17.55 MiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Source.zip)
 - [工作记录 ZIP（约 270 KiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Work-Records-20261005.zip)
 - [源码补丁](Netcatty-C1-Changes.patch)、[SHA256 校验值](SHA256SUMS.txt)、[分卷清单与校验值](package/parts.json)
+- [独立源码补丁 ZIP（约 65 KiB）](https://github.com/haveanorder/repositoryofmimeng/raw/refs/heads/main/deliveries/netcatty-c1-20261005/Netcatty-C1-Source-Patch-20261005.zip)：含检查、应用和回退脚本；请先读 [补丁说明](PATCH.zh-CN.md)。用于源码仓库，不直接覆盖 Windows 安装目录。
 
 ## 实现与启动
 

@@ -1,0 +1,11 @@
+{
+  "baseCommit": "de6d1a28ba577358d4bb03ae78ba32f9b87050c0",
+  "changedFiles": 50,
+  "forwardApply": "passed",
+  "contentsMatchWorkingSource": true,
+  "reverseApply": "passed",
+  "restoredTree": "fb483690c0ccaeade959c49af4686d16578154d4",
+  "patchedTree": "f80c1c9ed3853a2af07a3342c831e296db8e39aa",
+  "nodeSyntax": "passed",
+  "windowsRuntimeTested": false
+}

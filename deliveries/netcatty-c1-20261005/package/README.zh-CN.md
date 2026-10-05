@@ -8,4 +8,4 @@ Windows：先将仓库 ZIP 整个解压，进入本目录，双击 `Merge-Netcat
 
 Linux/macOS：在本目录执行 `cat Netcatty-C1-Delivery-With-Worklog-20261005.zip.part* > Netcatty-C1-Delivery-With-Worklog-20261005.zip`，再用 `sha256sum` 或 `shasum -a 256` 核对 `parts.json` 中的 archiveSha256。
 
-原包 SHA256：`aabe9f4971464f38eb92e19adf7dda3e57d2137a7ff29210e386e0b44eb1cce5`。
+原包 SHA256：`0cca164581a62c9c4183e592ff626b2cba40e32ce1165385139618511a4e5e4c`。

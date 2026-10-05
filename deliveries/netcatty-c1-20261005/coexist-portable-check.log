@@ -3,13 +3,13 @@
  64-bit locale=C.UTF-8 Threads:5 OPEN_MAX:16384, ASM
 
 Scanning the drive for archives:
-1 file, 138365632 bytes (132 MiB)
+1 file, 138365635 bytes (132 MiB)
 
 Testing archive: /workspace/deliverables/netcatty-c1/Netcatty-C1-Windows-x64-Portable.exe
 --
 Path = /workspace/deliverables/netcatty-c1/Netcatty-C1-Windows-x64-Portable.exe
 Type = Nsis
-Physical Size = 138365632
+Physical Size = 138365635
 Method = Deflate
 Solid = -
 Headers Size = 39880
@@ -19,5 +19,5 @@ SubType = NSIS-3 Unicode
 Everything is Ok
 
 Files: 4
-Size:       137991275
-Compressed: 138365632
+Size:       137991285
+Compressed: 138365635

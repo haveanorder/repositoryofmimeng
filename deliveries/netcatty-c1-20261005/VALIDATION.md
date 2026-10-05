@@ -17,7 +17,7 @@
 
 所有构建均未推送、合并或发布 GitHub release。
 
-## 共存修订版 0.0.0-c1.20261005.1
+## 共存修订版 0.0.0-c1.20261005.2
 
 - 修正 Electron 包名为 netcatty-c1；实际 Electron 探针确认默认数据目录与 netcatty 不同，Windows 包内元数据与源码一致。
 - 预览安装不注册正式版 Explorer 菜单和 URL 协议；新配置默认不接管 SSH/Telnet，显式保存的开关仍优先。
