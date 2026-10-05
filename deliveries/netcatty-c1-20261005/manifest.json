@@ -4,7 +4,7 @@
   "scheme": "C",
   "schemeDIncluded": false,
   "windowsSigned": false,
-  "assets": [
+  "containedArtifacts": [
     {
       "file": "Netcatty-C1-Delivery-With-Worklog-20261005.zip",
       "bytes": 486367100,
@@ -30,5 +30,12 @@
       "bytes": 276591,
       "sha256": "121ede9ef9d41b36cc2bff4b125db00e5b4ea44717d5873678291e3706c5d3ea"
     }
-  ]
+  ],
+  "transport": {
+    "method": "Git repository with 20 verified binary parts",
+    "package": "package/parts.json",
+    "merge": "package/Merge-Netcatty.cmd",
+    "download": "https://github.com/haveanorder/repositoryofmimeng/archive/refs/tags/netcatty-c1-20261005.zip",
+    "releaseBinaryAssets": false
+  }
 }
