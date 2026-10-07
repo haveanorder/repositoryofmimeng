@@ -1,0 +1,23 @@
+name: Publish accepted Netcatty 1183 patch assets
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: netcatty-c1-1183-20261007
+          filter: blob:none
+          sparse-checkout: deliveries/netcatty-c1-1183-20261007
+      - name: Check and upload the already accepted delivery
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd deliveries/netcatty-c1-1183-20261007
+          sha256sum -c SHA256SUMS.txt
+          gh release upload netcatty-c1-1183-20261007 *.zip *.patch *.md manifest.json SHA256SUMS.txt --repo "$GITHUB_REPOSITORY"
