@@ -72,6 +72,13 @@ jobs:
           NETCATTY_NATIVE_RUNTIME: ${{ github.workspace }}/cli
           NATIVE_ENGINES: pi,dsh,omp
         run: ./work/netcatty-c1-1.1.83-20261007/windows-package.ps1
+      - name: Publish accepted function patch and source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create netcatty-1.1.83-c1-20261007 Netcatty-1.1.83-C1-Function-Patch-20261007.zip Netcatty-1.1.83-C1-Source.patch START.zh-CN.md SHA256SUMS.txt --repo haveanorder/repositoryofmimeng --target "$env:GITHUB_SHA" --title "Netcatty 1.1.83 Windows x64 C1 Agent 功能补丁" --notes-file START.zh-CN.md
+          if ($LASTEXITCODE) { throw "release publication failed" }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -80,6 +87,8 @@ jobs:
             app/dist
             Netcatty-1.1.83-C1-Function-Patch-20261007.zip
             SHA256SUMS.txt
+            Netcatty-1.1.83-C1-Source.patch
+            START.zh-CN.md
             *acceptance.log
             electron.*.log
             cli/smoke-*/**/*.json
