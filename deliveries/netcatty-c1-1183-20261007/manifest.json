@@ -23,12 +23,12 @@
     },
     {
       "path": "resources/app.asar.unpacked/packages/netcatty-dsh-bridge/bridge.mjs",
-      "sha256": "9c3f8b19f30463ae4d4be81ea2813e21631219e0d5e283906df5c95272d279a4",
+      "sha256": "db7430a2eee7b19a8de25730513bb7e8af2ecaab4a5c35f514cdc55b54f05b34",
       "originalSha256": null
     },
     {
       "path": "resources/app.asar",
-      "sha256": "144b189bf76df2462e98a15d2b6049672adcfcd87989ab0e4d146f4694607326",
+      "sha256": "4a176f08a633dccda74af300e9cd0bf30f3346c988aea9888c228ba96de9e8c6",
       "originalSha256": "b30477606997ca3ad8a93c276c5c1a8df46bc33b70b3106d97e9d6caebc6914a"
     }
   ]

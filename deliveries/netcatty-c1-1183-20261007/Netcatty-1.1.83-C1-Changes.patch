@@ -1988,10 +1988,10 @@ index 72adafb..a508d16 100644
  }
 diff --git a/packages/netcatty-dsh-bridge/bridge.mjs b/packages/netcatty-dsh-bridge/bridge.mjs
 new file mode 100644
-index 0000000..dad7c54
+index 0000000..0dd170d
 --- /dev/null
 +++ b/packages/netcatty-dsh-bridge/bridge.mjs
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,180 @@
 +import process from 'node:process';
 +import { setImmediate } from 'node:timers';
 +// DSH 0.2.0-rc.2 profile plugin. The CLI owns boot, persistence and agent loop.
@@ -2005,7 +2005,8 @@ index 0000000..dad7c54
 +export const inject = ['agents', 'tools', 'jobs', 'approval', 'userQuestions', 'planMode', 'agentDefaultModel'];
 +
 +export async function apply(ctx) {
-+  const requireEngine = createRequire(realpathSync(process.env.NETCATTY_DSH_ENTRY));
++  const requireEntry = createRequire(realpathSync(process.env.NETCATTY_DSH_ENTRY));
++  const requireEngine = createRequire(requireEntry.resolve('@deepseek-ai/dsh/package.json'));
 +  const { createUserMessage } = await import(pathToFileURL(requireEngine.resolve('@deepseek-ai/dsh-llm')));
 +  const { UserQuestionError } = await import(pathToFileURL(requireEngine.resolve('@deepseek-ai/dsh-user-questions')));
 +  const send = (frame) => process.stdout.write(`${JSON.stringify(frame)}\n`);
@@ -2255,7 +2256,7 @@ index 0000000..41777ba
 +console.log(JSON.stringify({ patch: manifest.patch, modifiedFiles: files.length, originalUnpackedFilesReused: unpacked.length - files.length + 1 }));
 diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
 new file mode 100644
-index 0000000..bd0646d
+index 0000000..c36192b
 --- /dev/null
 +++ b/scripts/native-agents.electron.live.cjs
 @@ -0,0 +1,115 @@
@@ -2307,7 +2308,7 @@ index 0000000..bd0646d
 +      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
 +      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
 +      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
-+      const config = { engine, cwd: scratch, bin: entries[engine], model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env: { PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'disabled' } };
++      const config = { engine, cwd: scratch, bin: entries[engine], model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env: { PI_CONFIG_DIR: process.platform === 'win32' ? path.join('.netcatty-c1-acceptance', path.basename(scratch), engine) : path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'disabled' } };
 +      const result = await cdp.evaluate(`(async (config) => {
 +        const api = window.netcatty; const chat = 'native-electron-' + config.engine;
 +        const events = []; let allow = false; let approvals = 0;
@@ -2376,7 +2377,7 @@ index 0000000..bd0646d
 +module.exports = { connect };
 diff --git a/scripts/native-agents.live.cjs b/scripts/native-agents.live.cjs
 new file mode 100644
-index 0000000..b443469
+index 0000000..8861ea9
 --- /dev/null
 +++ b/scripts/native-agents.live.cjs
 @@ -0,0 +1,135 @@
@@ -2417,7 +2418,7 @@ index 0000000..b443469
 +        chatSessionId: `smoke-${engine}`, requestId: 'smoke', cwd: scratch,
 +        binPath: entries[engine],
 +        model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'netcatty-local/netcatty-smoke',
-+        env: { ...process.env, PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_PERMISSION_MODE: 'danger-full-access', DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'confirm' },
++        env: { ...process.env, PI_CONFIG_DIR: process.platform === 'win32' ? path.join('.netcatty-c1-acceptance', path.basename(scratch), engine) : path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_PERMISSION_MODE: 'danger-full-access', DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'confirm' },
 +        toolIntegrationMode: 'mcp', injectedMcpServers: [], permissionMode: 'confirm',
 +        getTempDir: () => path.join(scratch, 'tmp'),
 +        requestApprovalFromRenderer: async () => { approvals++; return allow; },
@@ -2517,7 +2518,7 @@ index 0000000..b443469
 +main().then(() => clearTimeout(deadline), (error) => { clearTimeout(deadline); console.error(error); process.exitCode = 1; });
 diff --git a/scripts/native-agents.ui.live.cjs b/scripts/native-agents.ui.live.cjs
 new file mode 100644
-index 0000000..1d40015
+index 0000000..9bbaf39
 --- /dev/null
 +++ b/scripts/native-agents.ui.live.cjs
 @@ -0,0 +1,74 @@
@@ -2556,7 +2557,7 @@ index 0000000..1d40015
 +      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
 +      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
 +      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
-+      const env = { PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_HOME: path.join(dir, 'dsh'), DSH_TELEMETRY_DISABLED: '1', DEEPSEEK_BASE_URL: service.url };
++      const env = { PI_CONFIG_DIR: process.platform === 'win32' ? path.join('.netcatty-c1-acceptance', path.basename(scratch), engine) : path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_HOME: path.join(dir, 'dsh'), DSH_TELEMETRY_DISABLED: '1', DEEPSEEK_BASE_URL: service.url };
 +      const config = { engine, command: entries[engine], cwd: scratch, model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env };
 +      await settings.evaluate(`(c=>{const card=document.querySelector('[data-native-settings="'+c.engine+'"]'); card.querySelector('details').open=true;
 +        const set=(e,v)=>{Object.getOwnPropertyDescriptor(e.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set.call(e,v);e.dispatchEvent(new Event('input',{bubbles:true}));};

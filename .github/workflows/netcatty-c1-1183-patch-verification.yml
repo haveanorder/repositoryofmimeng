@@ -33,9 +33,11 @@ jobs:
           if (!$piExe) { throw 'Pi executable missing' }
           $piCmd = Join-Path $piExe.DirectoryName 'pi.cmd'
           [IO.File]::WriteAllText($piCmd, "@echo off`r`n`"%~dp0pi.exe`" %*`r`n", [Text.Encoding]::ASCII)
-          npm install --prefix 'cli Existing Agent Entries/runtime' --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent@1.0.3 @deepseek-ai/dsh@0.2.0-rc.2
+          npm install --prefix 'cli Existing Agent Entries/runtime' --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent@1.0.3
           if ($LASTEXITCODE) { throw 'CLI dependencies' }
-          $entries = @{ omp=(Resolve-Path 'cli Existing Agent Entries/bin/omp.exe').Path; pi=$piCmd; dsh=(Resolve-Path 'cli Existing Agent Entries/runtime/node_modules/.bin/dsh.cmd').Path }
+          npm install --global --prefix 'cli Existing Agent Entries/npm-global' --ignore-scripts --no-audit --no-fund @deepseek-ai/dsh@0.2.0-rc.2
+          if ($LASTEXITCODE) { throw 'DSH global installation' }
+          $entries = @{ omp=(Resolve-Path 'cli Existing Agent Entries/bin/omp.exe').Path; pi=$piCmd; dsh=(Resolve-Path 'cli Existing Agent Entries/npm-global/dsh.cmd').Path }
           $entries | ConvertTo-Json | Set-Content 'cli Existing Agent Entries/engines.json' -Encoding utf8
           foreach ($engine in 'omp','pi','dsh') { & $entries[$engine] --version; if ($LASTEXITCODE) { throw "$engine startup" } }
       - name: Windows PowerShell 5 patch, original data, actual settings and MCP
