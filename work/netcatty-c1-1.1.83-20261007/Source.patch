@@ -778,14 +778,11 @@ index f80085c..e99169a 100644
  
 diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 new file mode 100644
-index 0000000..3c424ab
+index 0000000..06a758a
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,72 @@
 +"use strict";
-+const path = require('node:path');
-+const fs = require('node:fs');
-+const os = require('node:os');
 +const { nativeDriver, resourcePath, writeSessionFile } = require('./nativeSessionManager.cjs');
 +
 +const implementation = {
@@ -801,10 +798,8 @@ index 0000000..3c424ab
 +      env: Object.fromEntries(server.env.map(({ name, value }) => [name, value])), failOnStartupError: true, toolCallTimeoutMs: 300000,
 +    } }] });
 +    const patchPath = await writeSessionFile(session, 'dsh.patch.json', JSON.stringify(patch));
-+    const profile = 'netcatty-rpc-' + session.version.replace(/[^a-zA-Z0-9.-]/g, '-');
-+    const args = ['--profile', profile];
-+    const dshHome = ctx.env.DSH_HOME || path.join(ctx.env.HOME || ctx.env.USERPROFILE || os.homedir(), '.dsh');
-+    if (!fs.existsSync(path.join(dshHome, 'profiles', profile, 'package.json'))) args.push('--from-default-profile', 'sdk');
++    // Overlay the user's SDK profile without replacing its saved configuration.
++    const args = ['--profile', ctx.env.NETCATTY_DSH_PROFILE || 'sdk'];
 +    args.push('--patch', patchPath);
 +    return { args, env: { ...ctx.env, NETCATTY_DSH_ENTRY: session.entry,
 +      NETCATTY_NATIVE_LOCAL_TOOLS: ctx.env.NETCATTY_NATIVE_LOCAL_TOOLS || 'disabled', NETCATTY_NATIVE_PERMISSION: ctx.permissionMode,
@@ -2079,10 +2074,10 @@ index 0000000..66d3542
 +}
 diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
 new file mode 100644
-index 0000000..de4e239
+index 0000000..7f33dde
 --- /dev/null
 +++ b/scripts/native-agents.electron.live.cjs
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,105 @@
 +"use strict";
 +// Run against an isolated Netcatty Electron profile with --remote-debugging-port=9222.
 +const fs = require('node:fs/promises');
@@ -2108,13 +2103,14 @@ index 0000000..de4e239
 +      pending.set(++id, { resolve, reject });
 +      ws.send(JSON.stringify({ id, method, params }));
 +    });
++  await request('Runtime.evaluate', { expression: `new Promise((resolve, reject) => { const deadline = Date.now() + 20000; const timer = setInterval(() => { if (window.netcatty && document.readyState === 'complete') { clearInterval(timer); resolve(true); } else if (Date.now() > deadline) { clearInterval(timer); reject(new Error('Netcatty renderer did not become ready')); } }, 100); })`, returnByValue: true, awaitPromise: true });
 +  return { request, evaluate: async (expression) => (await request('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value, close: () => ws.close() };
 +}
 +async function main() {
 +  const root = process.env.NETCATTY_NATIVE_RUNTIME;
 +  assert(root, 'Set NETCATTY_NATIVE_RUNTIME');
 +  const service = await createNativeModelService();
-+  const shell = process.platform === 'win32' ? path.join(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe') : '/bin/bash';
++  const shell = process.platform === 'win32' ? path.join(process.env.ProgramFiles, 'Git/bin/bash.exe') : '/bin/bash';
 +  const workspace = process.cwd();
 +  const cdp = await connect();
 +  const scratch = await fs.mkdtemp(path.join(root, 'electron-smoke-'));
