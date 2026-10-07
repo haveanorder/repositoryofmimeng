@@ -51,10 +51,23 @@ jobs:
           if ($LASTEXITCODE) { throw "Pi startup failed" }
           & cli/runtime/node_modules/.bin/dsh.cmd --version
           if ($LASTEXITCODE) { throw "DSH startup failed" }
+      - name: Real target CLI streams, interaction, approval, resume and stop
+        shell: pwsh
+        env:
+          NETCATTY_NATIVE_RUNTIME: ${{ github.workspace }}/cli
+          NATIVE_ENGINES: pi,dsh,omp
+        run: |
+          Push-Location app
+          npm rebuild @vscode/windows-process-tree
+          if ($LASTEXITCODE) { throw "process tree setup failed" }
+          Pop-Location
+          node app/scripts/native-agents.live.cjs
+          if ($LASTEXITCODE) { throw "real CLI acceptance failed" }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: netcatty-c1-1183-acceptance-source
           path: |
             app/dist
+            cli/smoke-*/**/*.json
             work/netcatty-c1-1.1.83-20261007
