@@ -778,7 +778,7 @@ index f80085c..e99169a 100644
  
 diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 new file mode 100644
-index 0000000..120f8f9
+index 0000000..3c424ab
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 @@ -0,0 +1,77 @@
@@ -812,7 +812,7 @@ index 0000000..120f8f9
 +  },
 +  async open(session) {
 +    await session.rpc.waitReady();
-+    const model = session.ctx.model || ''; 
++    const model = session.ctx.model || '';
 +    const separator = model.indexOf('/');
 +    const result = await session.rpc.request('initialize', {
 +      cwd: session.ctx.cwd, resumeSessionId: session.resume,
@@ -902,14 +902,16 @@ index 994da00..3e5f36f 100644
    assert.deepEqual(await getDriver("codex").listModels({}), []);
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.cjs b/electron/bridges/aiBridge/sdk/nativeCli.cjs
 new file mode 100644
-index 0000000..822c466
+index 0000000..c5d2f2c
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeCli.cjs
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,48 @@
 +"use strict";
 +const path = require('node:path');
 +const fs = require('node:fs');
 +const { prepareCommandForSpawn, resolveCliFromPath } = require('../../ai/shellUtils.cjs');
++
++const shimRuntimes = new Map();
 +
 +// Resolve npm and Pi installer shims without changing the installed CLI.
 +function nativeEntry(command, engine) {
@@ -918,7 +920,13 @@ index 0000000..822c466
 +  const script = shim.match(/"%~dp0([^"\r\n]+\.[cm]?js)"/i) || shim.match(/"%dp0%([^"\r\n]+\.[cm]?js)"/i);
 +  if (script) {
 +    const entry = path.resolve(path.dirname(command), script[1].replace(/[\\/]/g, path.sep));
-+    if (fs.existsSync(entry)) return fs.realpathSync(entry);
++    if (fs.existsSync(entry)) {
++      const node = shim.match(/"%~dp0([^"\r\n]*node\.exe)"/i) || shim.match(/"%dp0%([^"\r\n]*node\.exe)"/i);
++      const runtime = node && path.resolve(path.dirname(command), node[1].replace(/[\\/]/g, path.sep));
++      const resolved = fs.realpathSync(entry);
++      if (runtime && fs.existsSync(runtime)) shimRuntimes.set(resolved, runtime);
++      return resolved;
++    }
 +  }
 +  const packageName = engine === 'dsh' ? '@deepseek-ai/dsh' : '@earendil-works/pi-coding-agent';
 +  const shimDirectory = path.dirname(path.resolve(command));
@@ -933,7 +941,7 @@ index 0000000..822c466
 +function prepareNativeCommand(command, args, env) {
 +  if (/\.[cm]?js$/i.test(command)) {
 +    const adjacentNode = path.join(path.dirname(command), process.platform === 'win32' ? 'node.exe' : 'node');
-+    return { command: fs.existsSync(adjacentNode) ? adjacentNode : resolveCliFromPath('node', env) || 'node', args: [command, ...args], shell: false };
++    return { command: shimRuntimes.get(command) || (fs.existsSync(adjacentNode) ? adjacentNode : resolveCliFromPath('node', env) || 'node'), args: [command, ...args], shell: false };
 +  }
 +  return prepareCommandForSpawn(command, args, { unwrapNativeExe: false });
 +}
@@ -948,17 +956,17 @@ index 0000000..822c466
 +module.exports = { nativeEntry, prepareNativeCommand, installedNativePath };
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.test.cjs b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
 new file mode 100644
-index 0000000..b63b6b7
+index 0000000..77691ac
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,38 @@
 +"use strict";
 +const test = require('node:test');
 +const assert = require('node:assert/strict');
 +const fs = require('node:fs');
 +const os = require('node:os');
 +const path = require('node:path');
-+const { nativeEntry } = require('./nativeCli.cjs');
++const { nativeEntry, prepareNativeCommand } = require('./nativeCli.cjs');
 +
 +test('Windows npm shims locate the pinned Pi entry even when package exports hide its manifest', () => {
 +  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'netcatty-native-cli-'));
@@ -983,8 +991,11 @@ index 0000000..b63b6b7
 +    const entry = path.join(root, 'cli.js');
 +    const shim = path.join(root, 'pi.cmd');
 +    fs.writeFileSync(entry, '');
++    const runtime = path.join(root, 'node.exe');
++    fs.writeFileSync(runtime, '');
 +    fs.writeFileSync(shim, '@echo off\r\n"%~dp0node.exe" "%~dp0cli.js" %*');
 +    assert.equal(nativeEntry(shim, 'pi'), entry);
++    assert.equal(prepareNativeCommand(entry, ['--version'], {}).command, runtime);
 +  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 +});
 diff --git a/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs b/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs
@@ -1211,7 +1222,7 @@ index 0000000..ee58f59
 +});
 diff --git a/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
 new file mode 100644
-index 0000000..6eba89b
+index 0000000..5c3cd7d
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
 @@ -0,0 +1,217 @@
@@ -1297,7 +1308,7 @@ index 0000000..6eba89b
 +    if (this.ctx.signal?.aborted || this.closing) throw new Error("Native startup cancelled");
 +    const spec = await this.implementation.launch(this);
 +    spec.env.NETCATTY_NATIVE_VERSION = this.version;
-+    spec.args.push(...JSON.parse(this.ctx.env.NETCATTY_NATIVE_ARGS || '[]')); 
++    spec.args.push(...JSON.parse(this.ctx.env.NETCATTY_NATIVE_ARGS || '[]'));
 +    if (this.ctx.signal?.aborted || this.closing) throw new Error("Native startup cancelled");
 +    this.rpc = new NativeRpcConnection({ command: this.entry, ...spec, engine: this.engine, cwd: this.ctx.cwd });
 +    this.rpc.on('fatal', (error) => {
@@ -1566,7 +1577,7 @@ index 0000000..a4121ff
 +};
 +module.exports = { ...nativeDriver('pi', implementation), launchPiFamily, handleAgentFrame };
 diff --git a/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs b/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
-index dea559b..c73d50e 100644
+index dea559b..0c321df 100644
 --- a/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
 +++ b/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
 @@ -14,6 +14,9 @@ const { probeCodexAppServer } = require("../codexAppServer/probe.cjs");
@@ -1616,6 +1627,15 @@ index dea559b..c73d50e 100644
            sdkRequestRuntimes.set(requestId, {
              backendKey,
              codexRuntime,
+@@ -762,7 +770,7 @@ function registerSdkStreamHandlers(ctx) {
+             requestId,
+             chatSessionId,
+             ...promptPlacement,
+-            cwd: cwd || process.cwd(),
++            cwd: cwd || (NATIVE_BACKENDS.has(backendKey) ? require('node:os').homedir() : process.cwd()),
+             model: model || undefined,
+             permissionMode: permissionMode || "confirm",
+             env,
 @@ -786,6 +794,7 @@ function registerSdkStreamHandlers(ctx) {
              resumeThreadId: resumeSessionId,
              attachments: stagedAttachments,
@@ -1874,7 +1894,7 @@ index c77cc3b..3f1e902 100644
    installed?: boolean;
 diff --git a/packages/netcatty-dsh-bridge/bridge.mjs b/packages/netcatty-dsh-bridge/bridge.mjs
 new file mode 100644
-index 0000000..3eadbaf
+index 0000000..66d3542
 --- /dev/null
 +++ b/packages/netcatty-dsh-bridge/bridge.mjs
 @@ -0,0 +1,179 @@
@@ -1999,7 +2019,7 @@ index 0000000..3eadbaf
 +    switch (command.type) {
 +      case 'initialize': {
 +        await ctx.get('loader')?.await();
-+        const options = { ...(command.provider ? { provider: command.provider } : {}), ...(command.model ? { model: command.model } : {}) }; 
++        const options = { ...(command.provider ? { provider: command.provider } : {}), ...(command.model ? { model: command.model } : {}) };
 +        handle = command.resumeSessionId
 +          ? await ctx.agents.resume({ resumeSessionId: command.resumeSessionId, agentOptions: options })
 +          : await ctx.agents.create({ sessionId: `netcatty-${randomUUID()}`, meta: { cwd: command.cwd }, agentOptions: options });
