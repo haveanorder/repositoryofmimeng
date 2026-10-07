@@ -66,11 +66,21 @@ jobs:
           Pop-Location
           node app/scripts/native-agents.live.cjs 2>&1 | Tee-Object -FilePath cli-acceptance.log
           if ($LASTEXITCODE) { throw "real CLI acceptance failed" }
+      - name: Official Windows resources, patch rollback and actual Netcatty MCP
+        shell: pwsh
+        env:
+          NETCATTY_NATIVE_RUNTIME: ${{ github.workspace }}/cli
+          NATIVE_ENGINES: pi,dsh,omp
+        run: ./work/netcatty-c1-1.1.83-20261007/windows-package.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: netcatty-c1-1183-acceptance-source
           path: |
             app/dist
+            Netcatty-1.1.83-C1-Function-Patch-20261007.zip
+            SHA256SUMS.txt
+            *acceptance.log
+            electron.*.log
             cli/smoke-*/**/*.json
             work/netcatty-c1-1.1.83-20261007
