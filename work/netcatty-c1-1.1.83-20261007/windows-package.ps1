@@ -32,7 +32,7 @@ $process=Start-Process trial/Netcatty.exe -ArgumentList @('--disable-gpu','--rem
 try {
   $ready=$false
   for ($attempt=0; $attempt -lt 60; $attempt++) {
-    try { Invoke-RestMethod http://127.0.0.1:9222/json/list | Out-Null; $ready=$true; break } catch { Start-Sleep -Milliseconds 500 }
+    try { $pages=Invoke-RestMethod http://127.0.0.1:9222/json/list; if ($pages | Where-Object { $_.type -eq 'page' -and $_.url -like 'file:*' }) { $ready=$true; break } } catch { Start-Sleep -Milliseconds 500 }
   }
   if (-not $ready) { throw 'patched Netcatty did not start' }
   Push-Location app
@@ -41,6 +41,14 @@ try {
   Pop-Location
 } finally { Get-Process Netcatty -ErrorAction SilentlyContinue | Stop-Process -Force }
 # Only a successful acceptance can produce an applicable package.
+$manifest.validation=@{ platform='GitHub Actions Windows x64'; cliVersions=@{omp='18.5.1'; pi='1.0.3'; dsh='0.2.0-rc.2'}; modelService='local controlled service'; runUrl="https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" }
+$manifest | ConvertTo-Json -Depth 8 | Set-Content patch-output/manifest.json -Encoding utf8
+$readme=Get-Content patch-output/START.zh-CN.md -Raw -Encoding utf8
+$readme=$readme -replace '本目录为开发与验收资源。只有全部验收完成后的 accepted 包可以应用，acceptance-pending 包会拒绝应用。不要把源码工作分支当作完成交付。', '此包已通过 GitHub Actions Windows x64 验收：三个目标 CLI 的真实收发、工具/MCP、交互、审批、停止、恢复，以及原版 EXE 加补丁资源启动、补丁应用与回滚。模型服务为本地可控服务，未使用或验证用户账户凭据。用户机器的原配置与实际账户仍需按末尾步骤确认。'
+$readme += "`n`n本次 Windows 验收日志：https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID`nDSH 默认在现有 sdk 配置上叠加 Netcatty 连接。使用自定义 SDK profile 时，可在设置中的环境变量 JSON 保存 NETCATTY_DSH_PROFILE；不修改该 profile 的配置文件。`n"
+$readme | Set-Content patch-output/START.zh-CN.md -Encoding utf8
+Copy-Item patch-output/Source.patch Netcatty-1.1.83-C1-Source.patch
+Copy-Item patch-output/START.zh-CN.md START.zh-CN.md
 Remove-Item patch-output/staging -Recurse -Force
 Compress-Archive patch-output/* Netcatty-1.1.83-C1-Function-Patch-20261007.zip -CompressionLevel Optimal
 Get-FileHash Netcatty-1.1.83-C1-Function-Patch-20261007.zip -Algorithm SHA256 | Format-List | Out-File SHA256SUMS.txt
