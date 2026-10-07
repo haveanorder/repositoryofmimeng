@@ -1992,7 +1992,7 @@ index 0000000..3eadbaf
 +}
 diff --git a/scripts/native-agents.live.cjs b/scripts/native-agents.live.cjs
 new file mode 100644
-index 0000000..78a6afc
+index 0000000..e84bc97
 --- /dev/null
 +++ b/scripts/native-agents.live.cjs
 @@ -0,0 +1,131 @@
@@ -2029,7 +2029,7 @@ index 0000000..78a6afc
 +      let onSnapshot;
 +      const base = {
 +        chatSessionId: `smoke-${engine}`, requestId: 'smoke', cwd: scratch,
-+        binPath: engine === 'omp' ? path.join(root, 'bin/omp') : path.join(root, 'runtime/node_modules/.bin', engine),
++        binPath: engine === 'omp' ? path.join(root, 'bin', process.platform === 'win32' ? 'omp.exe' : 'omp') : path.join(root, 'runtime/node_modules/.bin', process.platform === 'win32' ? engine + '.cmd' : engine),
 +        model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'netcatty-local/netcatty-smoke',
 +        env: { ...process.env, PI_CODING_AGENT_DIR: dir, DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'confirm' },
 +        toolIntegrationMode: 'mcp', injectedMcpServers: [], permissionMode: 'confirm',
