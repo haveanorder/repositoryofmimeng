@@ -2305,7 +2305,7 @@ index 0000000..e84bc97
 +main().then(() => clearTimeout(deadline), (error) => { clearTimeout(deadline); console.error(error); process.exitCode = 1; });
 diff --git a/scripts/native-model-service.cjs b/scripts/native-model-service.cjs
 new file mode 100644
-index 0000000..cde75cd
+index 0000000..72acb86
 --- /dev/null
 +++ b/scripts/native-model-service.cjs
 @@ -0,0 +1,62 @@
@@ -2334,19 +2334,19 @@ index 0000000..cde75cd
 +    const tools = (body.tools || []).map((tool) => tool.function || tool);
 +    const tool = !usedTool && prompt.includes('NC_QUESTION') ? tools.find((item) => item.name === 'ask_user_question')
 +      : !usedTool && prompt.includes('NC_PLAN') ? tools.find((item) => item.name === 'exit_plan_mode')
-+      : !usedTool && prompt.includes('NC_JOB') ? tools.find((item) => item.name === 'bash')
++      : !usedTool && prompt.includes('NC_JOB') ? tools.find((item) => item.name === 'bash' || item.name === 'pwsh')
 +      : !usedTool && prompt.includes('NC_TASK') ? tools.find((item) => item.name === 'task')
 +      : !usedTool && prompt.includes('NC_EXEC')
 +      ? tools.find((item) => /terminal_execute$/.test(item.name))
 +      : !usedTool && prompt.includes('NC_REMOTE')
 +      ? tools.find((item) => /get_environment$/.test(item.name))
-+      : !usedTool && prompt.includes('NC_TOOL') ? tools.find((item) => item.name === 'bash') : null;
++      : !usedTool && prompt.includes('NC_TOOL') ? tools.find((item) => item.name === 'bash' || item.name === 'pwsh') : null;
 +    const args = prompt.includes('NC_QUESTION') ? { questions: [{ id: 'choice', question: 'Choose a test option', options: [{ label: 'Alpha' }, { label: 'Beta' }] }], timeout: prompt.includes('deferred') ? 1 : -1 }
 +      : prompt.includes('NC_PLAN') ? { plan: '# Native integration plan\n\n1. Inspect the selected terminal.\n2. Report the result.' }
-+      : prompt.includes('NC_JOB') ? { command: 'printf NATIVE_JOB_STARTED; sleep 30', run_in_background: true }
++      : prompt.includes('NC_JOB') ? { command: tool?.name === 'pwsh' ? 'Write-Output NATIVE_JOB_STARTED; Start-Sleep -Seconds 30' : 'printf NATIVE_JOB_STARTED; sleep 30', run_in_background: true }
 +      : prompt.includes('NC_TASK') ? { agent: 'task', task: 'NC_HOLD child task', solutionSpace: 'Only respond to this text; use no tools.', tools: [], model: body.model }
 +      : prompt.includes('NC_EXEC') ? { sessionId: 'native-smoke-a', command: 'printf NETCATTY_MCP_CLI_OK' }
-+      : prompt.includes('NC_REMOTE') ? {} : { command: 'printf NATIVE_LOCAL_OK' };
++      : prompt.includes('NC_REMOTE') ? {} : { command: tool?.name === 'pwsh' ? 'Write-Output NATIVE_LOCAL_OK' : 'printf NATIVE_LOCAL_OK' };
 +    if (tool && (tool.input_schema?.required || tool.parameters?.required || []).includes('description')) args.description = 'Print a local integration marker';
 +    const text = `LOCAL_MODEL_OK \u4e2d\u6587 ${usedTool ? 'tool returned' : 'echo'}`;
 +    const id = randomUUID();
