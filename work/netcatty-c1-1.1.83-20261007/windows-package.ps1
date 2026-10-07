@@ -32,7 +32,7 @@ $process=Start-Process trial/Netcatty.exe -ArgumentList @('--disable-gpu','--rem
 try {
   $ready=$false
   for ($attempt=0; $attempt -lt 60; $attempt++) {
-    try { $pages=Invoke-RestMethod http://127.0.0.1:9222/json/list; if ($pages | Where-Object { $_.type -eq 'page' -and $_.url -like 'file:*' }) { $ready=$true; break } } catch {}
+    try { $pages=Invoke-RestMethod http://127.0.0.1:9222/json/list; if ($pages | Where-Object { $_.type -eq 'page' -and $_.url -like 'app://netcatty/*' }) { $ready=$true; break } } catch {}
     Start-Sleep -Milliseconds 500
   }
   if (-not $ready) { throw 'patched Netcatty did not start' }
