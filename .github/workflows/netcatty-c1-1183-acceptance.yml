@@ -1,0 +1,57 @@
+name: Netcatty C1 1.1.83 Windows acceptance
+on:
+  push:
+    branches: [netcatty-c1-1.1.83-work-20261007]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Restore exact upstream source and apply feature patch
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch v1.1.83 https://github.com/binaricat/Netcatty.git app
+          if ($LASTEXITCODE) { throw "clone failed" }
+          git -C app apply "$env:GITHUB_WORKSPACE/work/netcatty-c1-1.1.83-20261007/Source.patch"
+          if ($LASTEXITCODE) { throw "patch failed" }
+      - name: Build
+        shell: pwsh
+        working-directory: app
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE) { throw "dependencies failed" }
+          npm run build
+          if ($LASTEXITCODE) { throw "build failed" }
+      - name: Windows CLI entries and RPC decoder
+        shell: pwsh
+        working-directory: app
+        run: |
+          node --test electron/bridges/aiBridge/sdk/nativeCli.test.cjs electron/bridges/aiBridge/sdk/nativeRpcConnection.test.cjs
+          if ($LASTEXITCODE) { throw "entry tests failed" }
+      - name: Install isolated actual target versions
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force cli/bin,cli/runtime | Out-Null
+          Invoke-WebRequest https://github.com/can1357/oh-my-pi/releases/download/v18.5.1/omp-windows-x64.exe -OutFile cli/bin/omp.exe
+          npm install --prefix cli/runtime --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent@1.0.3 @deepseek-ai/dsh@0.2.0-rc.2
+          if ($LASTEXITCODE) { throw "agent install failed" }
+          & cli/bin/omp.exe --version
+          if ($LASTEXITCODE) { throw "OMP startup failed" }
+          & cli/runtime/node_modules/.bin/pi.cmd --version
+          if ($LASTEXITCODE) { throw "Pi startup failed" }
+          & cli/runtime/node_modules/.bin/dsh.cmd --version
+          if ($LASTEXITCODE) { throw "DSH startup failed" }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: netcatty-c1-1183-acceptance-source
+          path: |
+            app/dist
+            work/netcatty-c1-1.1.83-20261007
