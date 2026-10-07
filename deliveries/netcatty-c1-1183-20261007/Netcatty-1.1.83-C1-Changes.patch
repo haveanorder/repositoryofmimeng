@@ -1,0 +1,2937 @@
+diff --git a/START-C1-1183.zh-CN.md b/START-C1-1183.zh-CN.md
+new file mode 100644
+index 0000000..f6a9863
+--- /dev/null
++++ b/START-C1-1183.zh-CN.md
+@@ -0,0 +1,34 @@
++# Netcatty 1.1.83 Windows x64：C1 Agent 功能补丁
++
++本补丁从官方 v1.1.83（源码 `d7a0c8ed8d238dcf1c82d786da53037a1f1496b1`）移植 C1 的 OMP、Pi、DeepSeek Harness 接入。应用版本保持 1.1.83，补丁标识为 `C1-1183-20261007`。原 Netcatty.exe、快捷方式、应用身份和正常用户数据目录继续使用；不切换到 netcatty-c1。现有主机、密钥、聊天、设置以及 Codex/Claude 接入沿用原结构。
++
++## 应用与回滚
++
++1. 下载并完整解压 `Netcatty-1.1.83-C1-Windows-x64-Patch.zip`。
++2. 完全退出 Netcatty，包括托盘进程。
++3. 双击 `Patch-Netcatty.cmd`。自动识别安装目录；找不到或存在多个目录时，选择包含 Netcatty.exe 的目录。先检查，再选择应用。自定义盘符和安装位置均可。
++4. 若安装目录需要管理员权限，右键这个入口，以管理员身份运行。重新通过原快捷方式启动 Netcatty。
++
++回滚：退出 Netcatty，再运行同一入口并选回滚。原资源备份在安装目录 `.netcatty-c1-1183-backup`，请保留。回滚还原程序资源，保留当前用户数据和补丁期间产生的聊天。也可以双击 `Rollback-Netcatty.cmd`。补丁不会替你卸载或修改已有 Agent。
++
++入口只覆盖 manifest.json 列出的 4 个应用资源；先校验官方资源，再备份。已经应用会直接提示；第三方改版或其他版本会拒绝覆盖。不要手工覆盖 payload 文件绕开备份。
++
++## 配置三个已有 Agent
++
++进入 **设置 → AI → Agents**，找到 Oh My Pi、Pi、DeepSeek Harness。三个首要兼容版本为 **OMP 18.5.1、Pi 1.0.3、DSH CLI 0.2.0-rc.2**，不会仅因版本字符串不同而拒绝启动。
++
++- **CLI 可执行文件**：可留空自动发现，或填入已有 exe/cmd 的完整路径。自动检查 PATH，并查找 `%LOCALAPPDATA%\omp\omp.exe`、`%USERPROFILE%\.pi\agent\bin\pi.cmd`、`%APPDATA%\npm\dsh.cmd`。可在资源管理器复制路径；不要带外层引号。
++- **本地工作目录**：填写实际存在的项目目录。这是 Agent 进程的工作目录；连接的终端或 SFTP 范围仍由当前 Netcatty 会话决定。
++- **模型**：默认留空，复用 CLI 的现有 Provider、登录和模型配置。需要覆盖时填 `provider/model`。Netcatty 中其他 Agent 的全局模型不会强行覆盖这三个 CLI。
++- 先点 **检查 CLI 并保存**，会真正启动并检查 RPC/桥接，显示实际版本；再点 **测试模型连接并保存**，会发送一句简短请求验证模型回复，可能产生普通模型调用费用。
++- **凭据与高级配置**：可设置额外启动参数（JSON 字符串数组）、环境变量（JSON 对象）、可选 API 密钥。密钥通过 Netcatty 原有 Windows safeStorage/DPAPI 保存；未填写时继续使用 CLI 自己的认证。不会覆盖它们的登录或 Provider 文件。
++- **DSH SDK profile** 默认 `sdk`，复用已有 DSH 配置，通过随补丁提供的桥接文件接入。自定义 profile 必须基于 DSH SDK，不要填写纯终端交互 profile。无需另装网关或另一套 DSH。
++- **工具权限** 默认只开放当前范围内的 Netcatty 终端。需要操作本机项目时可选择“同时允许本地工作区工具并审批”。本地审批不会被 Auto 模式自动放行。OMP/Pi 可显式加入信任的扩展路径。
++
++保存后，在终端侧栏打开 AI，选择对应 Agent，发送消息。消息、工具结果、提问及审批会出现在侧栏，停止使用现有停止入口。更换工作目录、CLI 或启动配置后建议新建聊天；同一配置下已有原生会话可以恢复。
++
++## 简短 Windows 验收
++
++应用前记录一台已有主机、一项密钥和一个已有聊天。应用后从原入口启动，确认它们及 Codex/Claude 设置仍在。分别选择三个已有 CLI，检查实际版本并测试模型连接，发一句消息；让 Agent 查询当前终端，再审批一次无害命令（例如 `echo C1_OK`），拒绝一次命令，在等待审批时停止，随后新建聊天或恢复一次。退出、回滚，再确认原入口和数据仍可用。
++
++补丁不是上游官方发行版，未新增代码签名。默认复用现有配置；云模型、真实 SSH/SFTP 服务端和你的电脑上的最终体验，以这些验收步骤为准。完整实测范围见 `VALIDATION.zh-CN.md`。
+diff --git a/application/i18n/locales/en/ai.ts b/application/i18n/locales/en/ai.ts
+index 9cba72a..1dfba91 100644
+--- a/application/i18n/locales/en/ai.ts
++++ b/application/i18n/locales/en/ai.ts
+@@ -1,6 +1,8 @@
+ import type { Messages } from '../types';
++import { nativeAgentMessages } from './nativeAgents';
+ 
+ export const enAiMessages: Messages = {
++  ...nativeAgentMessages,
+   // AI Settings
+   'ai.agentSettings': 'Agent Settings',
+   'ai.chat.preparing': 'Preparing…',
+diff --git a/application/i18n/locales/en/nativeAgents.ts b/application/i18n/locales/en/nativeAgents.ts
+new file mode 100644
+index 0000000..b02d40a
+--- /dev/null
++++ b/application/i18n/locales/en/nativeAgents.ts
+@@ -0,0 +1,90 @@
++import type { Messages } from '../types';
++
++export const nativeAgentMessages: Messages = {
++  "ai.native.testModel": "Test model connection and save",
++  "ai.native.modelConnected": "{name} {version}: model replied successfully; configuration saved.",
++  "ai.native.connectionFailed": "CLI connection failed.",
++  "ai.native.saved": "{name} {version}: RPC ready; configuration saved. Select it in chat to start.",
++  "ai.native.existingCli": "Use your installed CLI. Leave model and key blank to inherit its configuration.",
++  "ai.native.args": "Additional launch arguments (JSON array)",
++  "ai.native.argsHint": "Example: [\"--provider\", \"openai\"]. RPC and bridge arguments are supplied by Netcatty.",
++  "ai.native.profile": "DSH SDK profile",
++  "ai.native.profileHint": "sdk uses existing DSH settings. Select a custom SDK-based profile when needed; its files are not overwritten.",
++  "ai.native.invalidArgs": "Arguments must be a JSON array of strings.",
++  'ai.native.status.killed': 'Stopped',
++  'ai.native.cli': "CLI executable",
++  'ai.native.cwd': "Local working directory",
++  'ai.native.cwdHint': "Absolute path on the machine running Netcatty",
++  'ai.native.model': "Model (provider/model)",
++  'ai.native.cliDefault': "CLI default",
++  'ai.native.access': "Tool access",
++  'ai.native.remoteOnly': "Netcatty connected terminals only",
++  'ai.native.localConfirm': "Also allow local workspace tools with approval",
++  'ai.native.scopeHint': "Local tools run on this machine. SSH/SFTP tools follow the chat scope and Netcatty approvals. Auto mode does not approve local tools.",
++  'ai.native.advanced': "Credentials and advanced configuration",
++  'ai.native.credentialsHint': "Existing CLI credentials are inherited. A saved key overrides the selected environment variable.",
++  'ai.native.keyVariable': "API key variable",
++  'ai.native.apiKey': "API key",
++  'ai.native.savedKey': "Saved; leave blank to keep",
++  'ai.native.removeKey': "Remove saved key when saving",
++  'ai.native.optional': "Optional",
++  'ai.native.environment': "Environment (JSON)",
++  'ai.native.extensions': "Trusted extension paths (one per line)",
++  'ai.native.extensionsHint': "Extensions run with the CLI process permissions. Text and dialog interactions are supported.",
++  'ai.native.checkSave': "Check CLI and save",
++  'ai.native.checking': "Checking…",
++  'ai.native.verifiedVersion': "Supported version: {version}",
++  'ai.native.ompInstall': "Install the official OMP standalone release",
++  'ai.native.restartHint': "Configuration changes apply on the next message. Start a new chat after changing the workspace or runtime.",
++  'ai.native.invalidEnvironment': "Environment must be a JSON object with string values.",
++  'ai.native.cliNotFound': "CLI not found. Install the supported version and enter its executable path.",
++  'ai.native.versionMismatch': "Expected {expected}; found {actual}.",
++  'ai.native.unknown': "Unknown",
++  'ai.native.sessionChanged': "This session is no longer available. Send a new message to reconnect.",
++  'ai.native.stop': "Stop all",
++  'ai.native.stopping': "Stopping…",
++  'ai.native.question': "Agent question",
++  'ai.native.answer': "Answer",
++  'ai.native.customAnswer': "Custom answer or feedback",
++  'ai.native.selectAnswer': "Select an answer",
++  'ai.native.sendAnswer': "Send answer",
++  'ai.native.yes': "Yes",
++  'ai.native.no': "No",
++  'ai.native.cancel': "Dismiss",
++  'ai.native.planReview': "Review plan",
++  'ai.native.planReviewQuestion': "Approve this plan and leave plan mode?",
++  'ai.native.approvePlan': "Approve plan",
++  'ai.native.keepPlanning': "Keep planning",
++  'ai.native.approvePlanHint': "Continue with the plan. Tool approvals remain separate.",
++  'ai.native.keepPlanningHint': "Send feedback and revise the plan.",
++  'ai.native.planOn': "Plan mode",
++  'ai.native.planOff': "Execution mode",
++  'ai.native.enterPlan': "Enter plan mode",
++  'ai.native.leavePlan': "Leave plan mode",
++  'ai.native.planPending': "Applies at the next model step",
++  'ai.native.tasks': "Tasks ({count})",
++  'ai.native.progress': "Progress details",
++  'ai.native.readOutput': "Read output",
++  'ai.native.stopTask': "Stop task",
++  'ai.native.subagentMessage': "Message to subagent",
++  'ai.native.send': "Send",
++  'ai.native.output': "Task output",
++  'ai.native.noOutput': "No output yet.",
++  'ai.native.closeOutput': "Close output",
++  'ai.native.continuation': "Follow-up response",
++  'ai.native.closedHint': "Send a new message to resume the native session.",
++  'ai.native.status.starting': "Starting",
++  'ai.native.status.running': "Running",
++  'ai.native.status.started': "Running",
++  'ai.native.status.busy': "Working",
++  'ai.native.status.idle': "Ready",
++  'ai.native.status.closed': "Stopped",
++  'ai.native.status.error': "Error",
++  'ai.native.status.completed': "Completed",
++  'ai.native.status.failed': "Failed",
++  'ai.native.status.aborted': "Cancelled",
++  'ai.native.status.cancelled': "Cancelled",
++  'ai.native.status.stopping': "Stopping",
++  'ai.native.status.exited': "Exited",
++  'ai.native.status.pending': "Pending",
++};
+diff --git a/application/i18n/locales/zh-CN/ai.ts b/application/i18n/locales/zh-CN/ai.ts
+index fee8f29..59d47be 100644
+--- a/application/i18n/locales/zh-CN/ai.ts
++++ b/application/i18n/locales/zh-CN/ai.ts
+@@ -1,6 +1,8 @@
+ import type { Messages } from '../types';
++import { nativeAgentMessages } from './nativeAgents';
+ 
+ export const zhCNAiMessages: Messages = {
++  ...nativeAgentMessages,
+   // AI Settings
+   'ai.agentSettings': 'Agent 设置',
+   'ai.chat.preparing': '准备中…',
+diff --git a/application/i18n/locales/zh-CN/nativeAgents.ts b/application/i18n/locales/zh-CN/nativeAgents.ts
+new file mode 100644
+index 0000000..a35b9e3
+--- /dev/null
++++ b/application/i18n/locales/zh-CN/nativeAgents.ts
+@@ -0,0 +1,90 @@
++import type { Messages } from '../types';
++
++export const nativeAgentMessages: Messages = {
++  "ai.native.testModel": "测试模型连接并保存",
++  "ai.native.modelConnected": "{name} {version}：模型已成功回复，配置已保存。",
++  "ai.native.connectionFailed": "CLI 连接失败。",
++  "ai.native.saved": "{name} {version}：RPC 已就绪，配置已保存。在聊天中选择即可开始。",
++  "ai.native.existingCli": "使用已有 CLI。模型和密钥留空时沿用 CLI 配置。",
++  "ai.native.args": "附加启动参数（JSON 数组）",
++  "ai.native.argsHint": "例如 [\"--provider\", \"openai\"]。RPC 和桥接参数由 Netcatty 提供。",
++  "ai.native.profile": "DSH SDK profile",
++  "ai.native.profileHint": "sdk 沿用已有 DSH 设置。也可填写以 SDK 为基础的自定义 profile；原配置不会被覆盖。",
++  "ai.native.invalidArgs": "启动参数必须是由字符串组成的 JSON 数组。",
++  'ai.native.status.killed': '已停止',
++  'ai.native.cli': "CLI 可执行文件",
++  'ai.native.cwd': "本机工作目录",
++  'ai.native.cwdHint': "运行 Netcatty 的机器上的绝对路径",
++  'ai.native.model': "模型（provider/model）",
++  'ai.native.cliDefault': "使用 CLI 默认模型",
++  'ai.native.access': "工具执行范围",
++  'ai.native.remoteOnly': "仅 Netcatty 已连接终端",
++  'ai.native.localConfirm': "同时允许本机工具，每次执行前审批",
++  'ai.native.scopeHint': "本机工具操作运行 Agent 的机器。SSH/SFTP 工具遵循聊天范围和 Netcatty 审批；自动模式不会自动批准本机工具。",
++  'ai.native.advanced': "凭据与高级配置",
++  'ai.native.credentialsHint': "沿用 CLI 已有凭据。下方保存的密钥只覆盖所选环境变量。",
++  'ai.native.keyVariable': "API 密钥环境变量",
++  'ai.native.apiKey': "API 密钥",
++  'ai.native.savedKey': "已保存；留空保留",
++  'ai.native.removeKey': "保存时删除已存密钥",
++  'ai.native.optional': "可选",
++  'ai.native.environment': "环境变量（JSON）",
++  'ai.native.extensions': "可信扩展路径（每行一个）",
++  'ai.native.extensionsHint': "扩展拥有 CLI 进程权限。支持文本与对话框交互。",
++  'ai.native.checkSave': "检查 CLI 并保存",
++  'ai.native.checking': "正在检查…",
++  'ai.native.verifiedVersion': "首要适配版本：{version}",
++  'ai.native.ompInstall': "安装 OMP 官方独立发行版",
++  'ai.native.restartHint': "配置会在下一条消息生效。更换工作目录或运行时时，请新建聊天。",
++  'ai.native.invalidEnvironment': "环境变量必须是 JSON 对象，且值均为字符串。",
++  'ai.native.cliNotFound': "未找到 CLI。请填写已有可执行文件路径。",
++  'ai.native.versionMismatch': "检测到 {actual}，请检查 CLI 的 RPC 接口。",
++  'ai.native.unknown': "未知",
++  'ai.native.sessionChanged': "当前会话已不可用，发送新消息可重新连接。",
++  'ai.native.stop': "全部停止",
++  'ai.native.stopping': "正在停止…",
++  'ai.native.question': "Agent 提问",
++  'ai.native.answer': "回答",
++  'ai.native.customAnswer': "补充回答或反馈",
++  'ai.native.selectAnswer': "请选择",
++  'ai.native.sendAnswer': "提交回答",
++  'ai.native.yes': "是",
++  'ai.native.no': "否",
++  'ai.native.cancel': "关闭",
++  'ai.native.planReview': "审核计划",
++  'ai.native.planReviewQuestion': "是否批准该计划并退出计划模式？",
++  'ai.native.approvePlan': "批准计划",
++  'ai.native.keepPlanning': "继续规划",
++  'ai.native.approvePlanHint': "按计划继续；工具执行仍需按权限规则审批。",
++  'ai.native.keepPlanningHint': "发送反馈并修改计划。",
++  'ai.native.planOn': "计划模式",
++  'ai.native.planOff': "执行模式",
++  'ai.native.enterPlan': "进入计划模式",
++  'ai.native.leavePlan': "退出计划模式",
++  'ai.native.planPending': "下一次模型调用时生效",
++  'ai.native.tasks': "任务（{count}）",
++  'ai.native.progress': "进度详情",
++  'ai.native.readOutput': "查看输出",
++  'ai.native.stopTask': "停止任务",
++  'ai.native.subagentMessage': "给子 Agent 发消息",
++  'ai.native.send': "发送",
++  'ai.native.output': "任务输出",
++  'ai.native.noOutput': "暂无输出。",
++  'ai.native.closeOutput': "收起输出",
++  'ai.native.continuation': "后续回复",
++  'ai.native.closedHint': "发送新消息以恢复原生会话。",
++  'ai.native.status.starting': "启动中",
++  'ai.native.status.running': "运行中",
++  'ai.native.status.started': "运行中",
++  'ai.native.status.busy': "处理中",
++  'ai.native.status.idle': "就绪",
++  'ai.native.status.closed': "已停止",
++  'ai.native.status.error': "出错",
++  'ai.native.status.completed': "已完成",
++  'ai.native.status.failed': "失败",
++  'ai.native.status.aborted': "已取消",
++  'ai.native.status.cancelled': "已取消",
++  'ai.native.status.stopping': "停止中",
++  'ai.native.status.exited': "已退出",
++  'ai.native.status.pending': "等待中",
++};
+diff --git a/application/i18n/locales/zh-TW/ai.ts b/application/i18n/locales/zh-TW/ai.ts
+index 192f5a3..b3e16c0 100644
+--- a/application/i18n/locales/zh-TW/ai.ts
++++ b/application/i18n/locales/zh-TW/ai.ts
+@@ -1,6 +1,8 @@
+ import type { Messages } from '../types';
++import { nativeAgentMessages } from './nativeAgents';
+ 
+ export const zhTWAiMessages: Messages = {
++  ...nativeAgentMessages,
+   // AI Settings
+   'ai.agentSettings': 'Agent 設定',
+   'ai.chat.preparing': '準備中…',
+diff --git a/application/i18n/locales/zh-TW/nativeAgents.ts b/application/i18n/locales/zh-TW/nativeAgents.ts
+new file mode 100644
+index 0000000..abb9aad
+--- /dev/null
++++ b/application/i18n/locales/zh-TW/nativeAgents.ts
+@@ -0,0 +1,90 @@
++import type { Messages } from '../types';
++
++export const nativeAgentMessages: Messages = {
++  "ai.native.testModel": "測試模型連線並儲存",
++  "ai.native.modelConnected": "{name} {version}：模型已成功回覆，設定已儲存。",
++  "ai.native.connectionFailed": "CLI 連線失敗。",
++  "ai.native.saved": "{name} {version}：RPC 已就緒，設定已儲存。在聊天中選取即可開始。",
++  "ai.native.existingCli": "使用既有 CLI。模型與金鑰留空時沿用 CLI 設定。",
++  "ai.native.args": "附加啟動參數（JSON 陣列）",
++  "ai.native.argsHint": "例如 [\"--provider\", \"openai\"]。RPC 和橋接參數由 Netcatty 提供。",
++  "ai.native.profile": "DSH SDK profile",
++  "ai.native.profileHint": "sdk 沿用既有 DSH 設定。也可填寫以 SDK 為基礎的自訂 profile；原設定不會被覆寫。",
++  "ai.native.invalidArgs": "啟動參數必須是由字串組成的 JSON 陣列。",
++  'ai.native.status.killed': '已停止',
++  'ai.native.cli': "CLI 執行檔",
++  'ai.native.cwd': "本機工作目錄",
++  'ai.native.cwdHint': "執行 Netcatty 的機器上的絕對路徑",
++  'ai.native.model': "模型（provider/model）",
++  'ai.native.cliDefault': "使用 CLI 預設模型",
++  'ai.native.access': "工具執行範圍",
++  'ai.native.remoteOnly': "僅 Netcatty 已連線終端",
++  'ai.native.localConfirm': "同時允許本機工具，每次執行前審批",
++  'ai.native.scopeHint': "本機工具操作執行 Agent 的機器。SSH/SFTP 工具遵循聊天範圍和 Netcatty 審批；自動模式不會自動核准本機工具。",
++  'ai.native.advanced': "憑證與進階設定",
++  'ai.native.credentialsHint': "沿用 CLI 現有憑證。下方儲存的金鑰只覆寫所選環境變數。",
++  'ai.native.keyVariable': "API 金鑰環境變數",
++  'ai.native.apiKey': "API 金鑰",
++  'ai.native.savedKey': "已儲存；留空保留",
++  'ai.native.removeKey': "儲存時刪除現有金鑰",
++  'ai.native.optional': "選填",
++  'ai.native.environment': "環境變數（JSON）",
++  'ai.native.extensions': "可信擴充套件路徑（每行一個）",
++  'ai.native.extensionsHint': "擴充套件擁有 CLI 程序權限。支援文字與對話框互動。",
++  'ai.native.checkSave': "檢查 CLI 並儲存",
++  'ai.native.checking': "正在檢查…",
++  'ai.native.verifiedVersion': "支援版本：{version}",
++  'ai.native.ompInstall': "安裝 OMP 官方獨立發行版",
++  'ai.native.restartHint': "設定會在下一則訊息生效。更換工作目錄或執行環境時，請建立新聊天。",
++  'ai.native.invalidEnvironment': "環境變數必須是 JSON 物件，且值皆為字串。",
++  'ai.native.cliNotFound': "找不到 CLI。請安裝支援版本並填寫執行檔路徑。",
++  'ai.native.versionMismatch': "需要版本 {expected}；偵測到 {actual}。",
++  'ai.native.unknown': "未知",
++  'ai.native.sessionChanged': "目前工作階段已無法使用，傳送新訊息可重新連線。",
++  'ai.native.stop': "全部停止",
++  'ai.native.stopping': "正在停止…",
++  'ai.native.question': "Agent 提問",
++  'ai.native.answer': "回答",
++  'ai.native.customAnswer': "補充回答或回饋",
++  'ai.native.selectAnswer': "請選擇",
++  'ai.native.sendAnswer': "送出回答",
++  'ai.native.yes': "是",
++  'ai.native.no': "否",
++  'ai.native.cancel': "關閉",
++  'ai.native.planReview': "審核計畫",
++  'ai.native.planReviewQuestion': "是否核准此計畫並離開計畫模式？",
++  'ai.native.approvePlan': "核准計畫",
++  'ai.native.keepPlanning': "繼續規劃",
++  'ai.native.approvePlanHint': "依計畫繼續；工具執行仍依權限規則審批。",
++  'ai.native.keepPlanningHint': "傳送回饋並修改計畫。",
++  'ai.native.planOn': "計畫模式",
++  'ai.native.planOff': "執行模式",
++  'ai.native.enterPlan': "進入計畫模式",
++  'ai.native.leavePlan': "離開計畫模式",
++  'ai.native.planPending': "下一次模型呼叫時生效",
++  'ai.native.tasks': "任務（{count}）",
++  'ai.native.progress': "進度詳情",
++  'ai.native.readOutput': "查看輸出",
++  'ai.native.stopTask': "停止任務",
++  'ai.native.subagentMessage': "傳送訊息給子 Agent",
++  'ai.native.send': "傳送",
++  'ai.native.output': "任務輸出",
++  'ai.native.noOutput': "尚無輸出。",
++  'ai.native.closeOutput': "收起輸出",
++  'ai.native.continuation': "後續回覆",
++  'ai.native.closedHint': "傳送新訊息以恢復原生工作階段。",
++  'ai.native.status.starting': "啟動中",
++  'ai.native.status.running': "執行中",
++  'ai.native.status.started': "執行中",
++  'ai.native.status.busy': "處理中",
++  'ai.native.status.idle': "就緒",
++  'ai.native.status.closed': "已停止",
++  'ai.native.status.error': "錯誤",
++  'ai.native.status.completed': "已完成",
++  'ai.native.status.failed': "失敗",
++  'ai.native.status.aborted': "已取消",
++  'ai.native.status.cancelled': "已取消",
++  'ai.native.status.stopping': "停止中",
++  'ai.native.status.exited': "已結束",
++  'ai.native.status.pending': "等待中",
++};
+diff --git a/application/state/useNativeAgentSession.ts b/application/state/useNativeAgentSession.ts
+new file mode 100644
+index 0000000..2a60f8b
+--- /dev/null
++++ b/application/state/useNativeAgentSession.ts
+@@ -0,0 +1,42 @@
++import { useCallback, useEffect, useState } from 'react';
++import { nativeTaskOutput, type NativeControl, type NativeSessionSnapshot } from '../../infrastructure/ai/nativeAgents';
++import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
++import { stopAgentTurn } from '../../infrastructure/ai/harness/agentStop';
++import { useI18n } from '../i18n/I18nProvider';
++
++export function useNativeAgentSession(chatSessionId?: string) {
++  const { t } = useI18n();
++  const [snapshot, setSnapshot] = useState<NativeSessionSnapshot | null>(null);
++  const [result, setResult] = useState('');
++  const [error, setError] = useState('');
++  const [pending, setPending] = useState('');
++  useEffect(() => {
++    let active = true;
++    let receivedEvent = false;
++    setSnapshot(null); setResult(''); setError(''); setPending('');
++    if (!chatSessionId) return;
++    const bridge = netcattyBridge.get();
++    const update = (value: NativeSessionSnapshot) => setSnapshot((previous) => previous?.instanceId === value.instanceId && previous.seq > value.seq ? previous : value);
++    const off = bridge?.onAiNativeSessionEvent?.(chatSessionId, (value) => { receivedEvent = true; if (active) update(value); });
++    void bridge?.aiNativeSessionControl?.({ chatSessionId, action: 'snapshot' }).then((response) => { if (active && !receivedEvent && response.snapshot) update(response.snapshot); }).catch((cause: Error) => { if (active) setError(cause.message); });
++    return () => { active = false; off?.(); };
++  }, [chatSessionId]);
++  const control = useCallback(async (payload: Omit<NativeControl, 'chatSessionId' | 'instanceId'>) => {
++    if (!chatSessionId || !snapshot || pending) return;
++    setPending(`${payload.action}:${payload.id || ''}`); setError('');
++    try {
++      const response = await netcattyBridge.get()?.aiNativeSessionControl?.({ ...payload, chatSessionId, instanceId: snapshot.instanceId });
++      if (!response?.ok) setError(response?.error || t('ai.native.sessionChanged'));
++      else if (payload.action === 'task-read') setResult(nativeTaskOutput(response.data) || t('ai.native.noOutput'));
++    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
++    finally { setPending(''); }
++  }, [chatSessionId, snapshot, pending, t]);
++  const stop = useCallback(async () => {
++    if (!chatSessionId) return;
++    setPending('stop'); setError('');
++    try { await stopAgentTurn({ chatSessionId, bridge: netcattyBridge.get(), backend: 'external-sdk' }); }
++    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
++    finally { setPending(''); }
++  }, [chatSessionId]);
++  return { snapshot, result, clearResult: () => setResult(''), error, pending, control, stop };
++}
+diff --git a/application/state/useNativeAgentSettings.ts b/application/state/useNativeAgentSettings.ts
+new file mode 100644
+index 0000000..a0034cd
+--- /dev/null
++++ b/application/state/useNativeAgentSettings.ts
+@@ -0,0 +1,52 @@
++import { useState } from 'react';
++import type { ExternalAgentConfig } from '../../infrastructure/ai/types';
++import { NATIVE_AGENTS, type NativeEngine } from '../../infrastructure/ai/nativeAgents';
++import { encryptField, decryptField } from '../../infrastructure/persistence/secureFieldAdapter';
++import { netcattyBridge } from '../../infrastructure/services/netcattyBridge';
++import { useI18n } from '../i18n/I18nProvider';
++
++export function useNativeAgentSettings(engine: NativeEngine, config: ExternalAgentConfig | undefined, save: (config: ExternalAgentConfig) => void) {
++  const { t } = useI18n();
++  const [command, setCommand] = useState(config?.command || '');
++  const [cwd, setCwd] = useState(config?.nativeOptions?.cwd || '');
++  const [model, setModel] = useState(config?.nativeOptions?.model || '');
++  const [args, setArgs] = useState(JSON.stringify(config?.args || []));
++  const [profile, setProfile] = useState(config?.nativeOptions?.profile || '');
++  const [localTools, setLocalTools] = useState<'disabled' | 'confirm'>(config?.nativeOptions?.localTools || 'disabled');
++  const [extensions, setExtensions] = useState(config?.nativeOptions?.extensions?.join('\n') || '');
++  const [env, setEnv] = useState(JSON.stringify(config?.env || {}, null, 2));
++  const [keyName, setKeyName] = useState(config?.nativeOptions?.apiKeyEnv || (engine === 'dsh' ? 'DEEPSEEK_API_KEY' : 'ANTHROPIC_API_KEY'));
++  const [apiKey, setApiKey] = useState('');
++  const [clearKey, setClearKey] = useState(false);
++  const [status, setStatus] = useState('');
++  const [failed, setFailed] = useState(false);
++  const [busy, setBusy] = useState(false);
++  const submit = async (testModel = false) => {
++    setBusy(true); setStatus(''); setFailed(false);
++    try {
++      const launchArgs = JSON.parse(args) as string[];
++      if (!Array.isArray(launchArgs) || launchArgs.some((arg) => typeof arg !== 'string')) throw new Error(t('ai.native.invalidArgs'));
++      const variables = JSON.parse(env) as Record<string, string>;
++      if (!variables || typeof variables !== 'object' || Array.isArray(variables) || Object.values(variables).some((value) => typeof value !== 'string')) throw new Error(t('ai.native.invalidEnvironment'));
++      const plainVariables = Object.fromEntries(await Promise.all(Object.entries(variables).map(async ([name, value]) => [name, await decryptField(value)])));
++      const storedVariables = Object.fromEntries(await Promise.all(Object.entries(variables).map(async ([name, value]) => [name, /KEY|TOKEN|SECRET|PASSWORD/i.test(name) && !value.startsWith('enc:v1:') ? await encryptField(value) : value])));
++      const resolved = await netcattyBridge.get()?.aiResolveCli?.({ command: engine, customPath: command || undefined, refreshShellEnv: true });
++      if (!resolved?.available || !resolved.path) throw new Error(resolved?.error || t('ai.native.cliNotFound'));
++      const secret = apiKey || (!clearKey && config?.apiKey ? await decryptField(config.apiKey) : '');
++      const checked = await netcattyBridge.get()?.aiNativeAgentCheck?.({ engine, command: resolved.path, cwd, model, testModel,
++        env: { ...plainVariables, NETCATTY_NATIVE_ARGS: JSON.stringify(launchArgs), NETCATTY_DSH_PROFILE: profile || 'sdk',
++          NETCATTY_NATIVE_EXTENSIONS: JSON.stringify(extensions.split('\n').map((line) => line.trim()).filter(Boolean)), ...(secret && keyName ? { [keyName]: secret } : {}) },
++      });
++      if (!checked?.ok) throw new Error(checked?.error || t('ai.native.connectionFailed'));
++      save({ ...config, id: `discovered_${engine}`, name: NATIVE_AGENTS[engine].name, sdkBackend: engine,
++        command: resolved.path, commandSource: 'manual', cliVersion: resolved.version, enabled: true, available: true, args: launchArgs,
++        env: storedVariables, apiKey: apiKey ? await encryptField(apiKey) : clearKey ? undefined : config?.apiKey,
++        nativeOptions: { cwd, model, profile, localTools, extensions: extensions.split('\n').map((line) => line.trim()).filter(Boolean), apiKeyEnv: keyName },
++      });
++      setCommand(resolved.path); setApiKey(''); setClearKey(false);
++      setStatus(t(testModel ? 'ai.native.modelConnected' : 'ai.native.saved', { version: checked.version || resolved.version || '', name: NATIVE_AGENTS[engine].name }));
++    } catch (error) { setFailed(true); setStatus(error instanceof SyntaxError ? t('ai.native.invalidEnvironment') : error instanceof Error ? error.message : String(error)); }
++    finally { setBusy(false); }
++  };
++  return { args, setArgs, profile, setProfile, command, setCommand, cwd, setCwd, model, setModel, localTools, setLocalTools, extensions, setExtensions, env, setEnv, keyName, setKeyName, apiKey, setApiKey, clearKey, setClearKey, status, failed, busy, submit };
++}
+diff --git a/components/AIChatSidePanel.tsx b/components/AIChatSidePanel.tsx
+index f0c0895..3eb4cd7 100644
+--- a/components/AIChatSidePanel.tsx
++++ b/components/AIChatSidePanel.tsx
+@@ -832,12 +832,14 @@ const AIChatSidePanelActive: React.FC<AIChatSidePanelProps> = ({
+   );
+ 
+   const providerDisplayName = effectiveActiveProvider?.name ?? '';
+-  const modelDisplayName = effectiveActiveModelId || effectiveActiveProvider?.defaultModel || '';
+ 
+   const currentAgentConfig = useMemo(
+     () => currentAgentId !== 'catty' ? externalAgents.find(a => a.id === currentAgentId) : undefined,
+     [currentAgentId, externalAgents],
+   );
++  const modelDisplayName = currentAgentConfig?.nativeOptions
++    ? currentAgentConfig.nativeOptions.model || t('ai.native.cliDefault')
++    : effectiveActiveModelId || effectiveActiveProvider?.defaultModel || '';
+   const isCodexManagedAgent = useMemo(
+     () => currentAgentConfig ? matchesManagedAgentConfig(currentAgentConfig, 'codex') : false,
+     [currentAgentConfig],
+diff --git a/components/ai/ChatMessageList.tsx b/components/ai/ChatMessageList.tsx
+index 225a3a5..ffe7083 100644
+--- a/components/ai/ChatMessageList.tsx
++++ b/components/ai/ChatMessageList.tsx
+@@ -1,3 +1,4 @@
++import { NativeAgentPanel } from "./NativeAgentPanel";
+ /**
+  * ChatMessageList - Renders the list of chat messages
+  *
+@@ -848,7 +849,7 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
+                     approvalStatus={'pending'}
+                     approvalId={id}
+                     onApproveOnce={() => handleApproveOnce(id)}
+-                    onAlwaysAllow={() => handleAlwaysAllow(id, req)}
++                    onAlwaysAllow={req.args.executionScope === 'local-workspace' ? undefined : () => handleAlwaysAllow(id, req)}
+                     onReject={() => handleReject(id)}
+                   />
+                 </div>
+@@ -880,6 +881,8 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
+             </React.Profiler>
+           ))}
+ 
++        <NativeAgentPanel chatSessionId={activeSessionId} />
++
+         {Array.from(pendingCodexInteractions.values())
+           .filter((interaction): interaction is Extract<CodexAppServerInteraction, { kind: 'user-input' }> => interaction.kind === 'user-input')
+           .filter((interaction) => !activeSessionId || interaction.chatSessionId === activeSessionId)
+diff --git a/components/ai/ExternalMcpApprovalsHost.tsx b/components/ai/ExternalMcpApprovalsHost.tsx
+index fc9ba23..d0e40ae 100644
+--- a/components/ai/ExternalMcpApprovalsHost.tsx
++++ b/components/ai/ExternalMcpApprovalsHost.tsx
+@@ -102,7 +102,7 @@ export const ExternalMcpApprovalsHost: React.FC = () => {
+               approvalStatus="pending"
+               approvalId={id}
+               onApproveOnce={() => handleApproveOnce(id)}
+-              onAlwaysAllow={() => handleAlwaysAllow(id, req)}
++              onAlwaysAllow={req.args.executionScope === 'local-workspace' ? undefined : () => handleAlwaysAllow(id, req)}
+               onReject={() => handleReject(id)}
+             />
+           ))}
+diff --git a/components/ai/NativeAgentPanel.tsx b/components/ai/NativeAgentPanel.tsx
+new file mode 100644
+index 0000000..29e7426
+--- /dev/null
++++ b/components/ai/NativeAgentPanel.tsx
+@@ -0,0 +1,81 @@
++import React, { useState } from 'react';
++import { ClipboardList, Loader2, Square, X } from 'lucide-react';
++import { Button } from '../ui/button';
++import { useI18n } from '../../application/i18n/I18nProvider';
++import { useNativeAgentSession } from '../../application/state/useNativeAgentSession';
++import { NATIVE_AGENTS, type NativeInteraction, type NativeEngine, type NativeQuestion } from '../../infrastructure/ai/nativeAgents';
++
++function Interaction({ item, engine, disabled, respond }: { item: NativeInteraction; engine: NativeEngine; disabled: boolean; respond: (answer: Record<string, unknown>) => void }) {
++  const { t } = useI18n();
++  const [text, setText] = useState(item.prefill || '');
++  const [selected, setSelected] = useState<Record<string, string[]>>({});
++  const [custom, setCustom] = useState<Record<string, string>>({});
++  const questions: NativeQuestion[] = item.questions || [];
++  const review = questions.some((question) => question.intent?.kind === 'plan-review');
++  const submit = () => {
++    if (questions.length) respond({ answers: questions.map((question) => engine === 'dsh'
++      ? { id: question.id, selected: selected[question.id] || [], custom: custom[question.id] || undefined }
++      : { id: question.id, selectedOptions: selected[question.id] || [], customInput: custom[question.id] || undefined }) });
++    else respond({ value: text });
++  };
++  return <div className={'rounded-lg border p-3 space-y-3 ' + (review ? 'border-primary/40 bg-primary/5' : 'border-border/70 bg-card/70')}>
++    <p className="flex items-center gap-2 text-sm font-medium">{review && <ClipboardList size={15} />}{review ? t('ai.native.planReview') : item.title || t('ai.native.question')}</p>
++    {item.message && <p className="text-xs whitespace-pre-wrap">{item.message}</p>}
++    {questions.map((question) => {
++      const plan = question.intent?.kind === 'plan-review';
++      return <fieldset disabled={disabled} key={question.id} className="space-y-2 text-xs">
++        <legend className="font-medium mb-2">{plan ? t('ai.native.planReviewQuestion') : [question.header, question.question].filter(Boolean).join(' · ')}</legend>
++        {question.detail && <pre className="whitespace-pre-wrap max-h-80 overflow-auto rounded bg-background/70 p-3 font-sans leading-relaxed">{question.detail}</pre>}
++        {question.options?.map((option) => {
++          const approved = option.label === question.intent?.approve;
++          return <label key={option.label} className="flex gap-2 items-start rounded-md border border-border/50 p-2 cursor-pointer has-[:checked]:border-primary/60">
++            <input className="mt-0.5" type={question.multi || question.multiSelect ? 'checkbox' : 'radio'} name={item.id + '-' + question.id} checked={(selected[question.id] || []).includes(option.label)} onChange={(event) => setSelected((old) => ({ ...old, [question.id]: question.multi || question.multiSelect ? event.target.checked ? [...(old[question.id] || []), option.label] : (old[question.id] || []).filter((label) => label !== option.label) : [option.label] }))} />
++            <span>{plan ? t(approved ? 'ai.native.approvePlan' : 'ai.native.keepPlanning') : option.label}<span className="block text-muted-foreground mt-1">{plan ? t(approved ? 'ai.native.approvePlanHint' : 'ai.native.keepPlanningHint') : option.description}</span></span>
++          </label>;
++        })}
++        <textarea aria-label={t('ai.native.customAnswer')} className="w-full rounded border border-input bg-background p-2" value={custom[question.id] || ''} onChange={(event) => setCustom((old) => ({ ...old, [question.id]: event.target.value }))} placeholder={t('ai.native.customAnswer')} />
++      </fieldset>;
++    })}
++    {item.method === 'select' && <select disabled={disabled} aria-label={t('ai.native.selectAnswer')} className="w-full bg-background border rounded p-2 text-xs" value={text} onChange={(event) => setText(event.target.value)}><option value="">{t('ai.native.selectAnswer')}</option>{item.options?.map((option) => <option key={option}>{option}</option>)}</select>}
++    {['input', 'editor'].includes(item.method) && <textarea disabled={disabled} aria-label={item.title || t('ai.native.answer')} className="w-full rounded border border-input bg-background p-2 text-xs" value={text} onChange={(event) => setText(event.target.value)} />}
++    <div className="flex flex-wrap gap-2">
++      {item.method === 'confirm' ? <><Button size="sm" disabled={disabled} onClick={() => respond({ confirmed: true })}>{t('ai.native.yes')}</Button><Button size="sm" variant="outline" disabled={disabled} onClick={() => respond({ confirmed: false })}>{t('ai.native.no')}</Button></> : <Button size="sm" onClick={submit} disabled={disabled || (questions.length ? questions.some((question) => !selected[question.id]?.length && !custom[question.id]?.trim()) : !text.trim())}>{t('ai.native.sendAnswer')}</Button>}
++      <Button size="sm" variant="ghost" disabled={disabled} onClick={() => respond({ cancelled: true })}>{t('ai.native.cancel')}</Button>
++    </div>
++  </div>;
++}
++
++export function NativeAgentPanel({ chatSessionId }: { chatSessionId?: string }) {
++  const { t } = useI18n();
++  const { snapshot, result, clearResult, error, pending, control, stop } = useNativeAgentSession(chatSessionId);
++  const [steering, setSteering] = useState<Record<string, string>>({});
++  if (!snapshot) return null;
++  const closed = snapshot.status === 'closed' || snapshot.status === 'error';
++  const planActive = snapshot.plan?.pending ?? snapshot.plan?.active;
++  const statusText = (status?: string) => {
++    const key = 'ai.native.status.' + status;
++    return t(key) === key ? status || t('ai.native.unknown') : t(key);
++  };
++  return <div className="space-y-3 border-t border-border/60 pt-3" data-native-engine={snapshot.engine}>
++    <div className="flex items-center justify-between gap-2 text-xs">
++      <div className="min-w-0"><p className="font-medium">{NATIVE_AGENTS[snapshot.engine].name} <span className="text-muted-foreground font-normal">{snapshot.version}</span></p><p className="text-muted-foreground" role="status">{statusText(snapshot.status)}</p></div>
++      <Button variant="ghost" size="sm" disabled={closed || pending === 'stop'} onClick={() => void stop()}>{pending === 'stop' ? <Loader2 size={13} className="mr-1 animate-spin" /> : <Square size={12} className="mr-1" />}{t(pending === 'stop' ? 'ai.native.stopping' : 'ai.native.stop')}</Button>
++    </div>
++    {closed && <p className="text-xs text-muted-foreground">{t('ai.native.closedHint')}</p>}
++    {snapshot.engine === 'dsh' && <div className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1 text-xs"><div><span>{t(planActive ? 'ai.native.planOn' : 'ai.native.planOff')}</span>{snapshot.plan?.pending !== undefined && <p className="text-muted-foreground">{t('ai.native.planPending')}</p>}</div><Button size="sm" variant="ghost" disabled={closed || Boolean(pending)} onClick={() => void control({ action: planActive ? 'plan-off' : 'plan-on' })}>{t(planActive ? 'ai.native.leavePlan' : 'ai.native.enterPlan')}</Button></div>}
++    {snapshot.interactions.map((item) => <Interaction key={item.id} item={item} engine={snapshot.engine} disabled={closed || Boolean(pending)} respond={(answer) => void control({ action: 'respond', id: item.id, answer })} />)}
++    {snapshot.widgets.map((widget) => <div key={widget.id} className="rounded-md bg-muted/30 p-2">{widget.id === 'continuation' && <p className="mb-1 text-xs font-medium">{t('ai.native.continuation')}</p>}<pre className="text-xs whitespace-pre-wrap max-h-60 overflow-auto font-sans leading-relaxed">{widget.text}</pre></div>)}
++    {snapshot.tasks.length > 0 && <p className="text-xs font-medium">{t('ai.native.tasks', { count: snapshot.tasks.length })}</p>}
++    {snapshot.tasks.map((task) => {
++      const finished = ['completed', 'failed', 'aborted', 'cancelled', 'killed', 'exited'].includes(task.status || '');
++      return <div key={task.id} className="rounded-lg border border-border/60 p-3 text-xs space-y-2">
++        <div className="flex items-start justify-between gap-2"><p className="font-medium break-words">{task.name || task.title || task.id}</p><span className="shrink-0 text-muted-foreground">{statusText(task.status)}</span></div>
++        {task.progress != null && <details><summary className="cursor-pointer text-muted-foreground">{t('ai.native.progress')}</summary><pre className="whitespace-pre-wrap max-h-40 overflow-auto mt-1">{typeof task.progress === 'string' ? task.progress : JSON.stringify(task.progress, null, 2)}</pre></details>}
++        <div className="flex gap-2"><Button size="sm" variant="outline" disabled={closed || Boolean(pending)} onClick={() => void control({ action: 'task-read', id: task.id })}>{t('ai.native.readOutput')}</Button><Button size="sm" variant="ghost" disabled={closed || finished || Boolean(pending)} onClick={() => void control({ action: 'task-cancel', id: task.id })}>{t('ai.native.stopTask')}</Button></div>
++        {snapshot.engine === 'omp' && !finished && <div className="flex gap-2"><input disabled={closed} aria-label={t('ai.native.subagentMessage')} placeholder={t('ai.native.subagentMessage')} className="min-w-0 flex-1 rounded border bg-background px-2" value={steering[task.id] || ''} onChange={(event) => setSteering((old) => ({ ...old, [task.id]: event.target.value }))} /><Button size="sm" disabled={closed || Boolean(pending) || !steering[task.id]?.trim()} onClick={() => { void control({ action: 'task-steer', id: task.id, message: steering[task.id] }); setSteering((old) => ({ ...old, [task.id]: '' })); }}>{t('ai.native.send')}</Button></div>}
++      </div>;
++    })}
++    {error && <p role="alert" className="text-xs text-destructive break-words">{error}</p>}
++    {result && <div className="rounded-lg border border-border/60 p-3"><div className="mb-2 flex items-center justify-between text-xs font-medium">{t('ai.native.output')}<Button aria-label={t('ai.native.closeOutput')} size="sm" variant="ghost" onClick={clearResult}><X size={13} /></Button></div><pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs select-text">{result}</pre></div>}
++  </div>;
++}
+diff --git a/components/settings/tabs/SettingsAITab.tsx b/components/settings/tabs/SettingsAITab.tsx
+index 319185d..548ed4c 100644
+--- a/components/settings/tabs/SettingsAITab.tsx
++++ b/components/settings/tabs/SettingsAITab.tsx
+@@ -1,3 +1,5 @@
++import { NativeAgentCard } from "./ai/NativeAgentCard";
++import { NATIVE_AGENTS, type NativeEngine } from "../../../infrastructure/ai/nativeAgents";
+ /**
+  * Settings AI Tab - AI provider configuration, agent CLI detection, and safety settings
+  *
+@@ -1206,6 +1208,12 @@ const SettingsAITab: React.FC<SettingsAITabProps> = ({
+             />
+           </SettingsSection>
+ 
++          {(Object.keys(NATIVE_AGENTS) as NativeEngine[]).map((engine) => (
++            <SettingsSection key={engine} title={NATIVE_AGENTS[engine].name}>
++              <NativeAgentCard engine={engine} config={externalAgents.find((agent) => agent.sdkBackend === engine)} onSave={(config) => setExternalAgents((previous) => [...previous.filter((agent) => agent.id !== config.id), config])} />
++            </SettingsSection>
++          ))}
++
+           {agentOptions.length > 1 ? (
+             <SettingsSection anchorId="ai-default-agent" title={t('ai.defaultAgent')}>
+               <SettingCard>
+diff --git a/components/settings/tabs/ai/NativeAgentCard.tsx b/components/settings/tabs/ai/NativeAgentCard.tsx
+new file mode 100644
+index 0000000..d1e6f35
+--- /dev/null
++++ b/components/settings/tabs/ai/NativeAgentCard.tsx
+@@ -0,0 +1,42 @@
++import React from 'react';
++import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
++import { Button } from '../../../ui/button';
++import { useI18n } from '../../../../application/i18n/I18nProvider';
++import { useNativeAgentSettings } from '../../../../application/state/useNativeAgentSettings';
++import type { ExternalAgentConfig } from '../../../../infrastructure/ai/types';
++import { NATIVE_AGENTS, type NativeEngine } from '../../../../infrastructure/ai/nativeAgents';
++
++export function NativeAgentCard({ engine, config, onSave }: { engine: NativeEngine; config?: ExternalAgentConfig; onSave: (config: ExternalAgentConfig) => void }) {
++  const { t } = useI18n();
++  const state = useNativeAgentSettings(engine, config, onSave);
++  const inputClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-xs';
++  return <div className="space-y-4 rounded-xl border border-border/60 p-4" data-native-settings={engine}>
++    <div className="space-y-1 text-xs">
++      <p className="font-medium">{t('ai.native.verifiedVersion', { version: NATIVE_AGENTS[engine].version })}</p>
++      <p className="text-muted-foreground">{t('ai.native.existingCli')}</p>
++    </div>
++    <label className="block text-xs space-y-1"><span>{t('ai.native.cli')}</span><input className={inputClass} value={state.command} placeholder={engine} onChange={(event) => state.setCommand(event.target.value)} /></label>
++    <label className="block text-xs space-y-1"><span>{t('ai.native.cwd')}</span><input className={inputClass} value={state.cwd} placeholder={t('ai.native.cwdHint')} onChange={(event) => state.setCwd(event.target.value)} /></label>
++    <label className="block text-xs space-y-1"><span>{t('ai.native.model')}</span><input className={inputClass} value={state.model} placeholder={t('ai.native.cliDefault')} onChange={(event) => state.setModel(event.target.value)} /></label>
++    <label className="block text-xs space-y-1"><span>{t('ai.native.access')}</span><select className={inputClass} value={state.localTools} onChange={(event) => state.setLocalTools(event.target.value as 'disabled' | 'confirm')}>
++      <option value="disabled">{t('ai.native.remoteOnly')}</option><option value="confirm">{t('ai.native.localConfirm')}</option>
++    </select></label>
++    <p className="rounded-md bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">{t('ai.native.scopeHint')}</p>
++    <details className="text-xs space-y-3"><summary className="cursor-pointer font-medium">{t('ai.native.advanced')}</summary>
++      <label className="block space-y-1"><span>{t('ai.native.args')}</span><input className={inputClass} value={state.args} onChange={(event) => state.setArgs(event.target.value)} /><span className="text-muted-foreground">{t('ai.native.argsHint')}</span></label>
++      {engine === 'dsh' && <label className="block space-y-1"><span>{t('ai.native.profile')}</span><input className={inputClass} value={state.profile} placeholder="sdk" onChange={(event) => state.setProfile(event.target.value)} /><span className="text-muted-foreground">{t('ai.native.profileHint')}</span></label>}
++      <p className="text-muted-foreground">{t('ai.native.credentialsHint')}</p>
++      <label className="block space-y-1"><span>{t('ai.native.keyVariable')}</span><input className={inputClass} value={state.keyName} onChange={(event) => state.setKeyName(event.target.value)} /></label>
++      <label className="block space-y-1"><span>{t('ai.native.apiKey')}</span><input className={inputClass} type="password" autoComplete="off" value={state.apiKey} placeholder={config?.apiKey && !state.clearKey ? t('ai.native.savedKey') : t('ai.native.optional')} onChange={(event) => state.setApiKey(event.target.value)} /></label>
++      {config?.apiKey && <label className="flex items-center gap-2"><input type="checkbox" checked={state.clearKey} onChange={(event) => state.setClearKey(event.target.checked)} />{t('ai.native.removeKey')}</label>}
++      <label className="block space-y-1"><span>{t('ai.native.environment')}</span><textarea className={inputClass + ' font-mono'} spellCheck={false} rows={4} value={state.env} onChange={(event) => state.setEnv(event.target.value)} /></label>
++      {engine !== 'dsh' && <label className="block space-y-1"><span>{t('ai.native.extensions')}</span><textarea className={inputClass} rows={2} value={state.extensions} onChange={(event) => state.setExtensions(event.target.value)} /><span className="text-muted-foreground">{t('ai.native.extensionsHint')}</span></label>}
++    </details>
++    <div className="space-y-2">
++      <Button size="sm" disabled={state.busy} onClick={() => void state.submit()}>{state.busy && <Loader2 size={14} className="mr-2 animate-spin" />}{t(state.busy ? 'ai.native.checking' : 'ai.native.checkSave')}</Button>
++      <Button size="sm" variant="outline" className="ml-2" disabled={state.busy} onClick={() => void state.submit(true)}>{t('ai.native.testModel')}</Button>
++      {state.status && <p role={state.failed ? 'alert' : 'status'} className={'flex items-start gap-2 text-xs break-words ' + (state.failed ? 'text-destructive' : 'text-muted-foreground')}>{state.failed ? <AlertCircle size={14} className="shrink-0" /> : <CheckCircle2 size={14} className="shrink-0" />}{state.status}</p>}
++      <p className="text-xs text-muted-foreground">{t('ai.native.restartHint')}</p>
++    </div>
++  </div>;
++}
+diff --git a/components/settings/tabs/ai/types.ts b/components/settings/tabs/ai/types.ts
+index d830f2b..b760ca9 100644
+--- a/components/settings/tabs/ai/types.ts
++++ b/components/settings/tabs/ai/types.ts
+@@ -188,6 +188,9 @@ export interface NetcattyAiBridge {
+ 
+ // Agent default configs for registration in externalAgents
+ export const AGENT_DEFAULTS: Record<string, Omit<ExternalAgentConfig, "id" | "command" | "enabled">> = {
++  omp: { name: "Oh My Pi", icon: "terminal", sdkBackend: "omp", args: [] },
++  pi: { name: "Pi", icon: "terminal", sdkBackend: "pi", args: [] },
++  dsh: { name: "DeepSeek Harness", icon: "terminal", sdkBackend: "dsh", args: [] },
+   codex: {
+     name: "Codex CLI",
+     args: ["exec", "--full-auto", "--json", "{prompt}"],
+diff --git a/electron-builder.config.cjs b/electron-builder.config.cjs
+index fc07397..a01bf66 100644
+--- a/electron-builder.config.cjs
++++ b/electron-builder.config.cjs
+@@ -54,6 +54,7 @@ module.exports = {
+     files: [
+         'dist/**/*',
+         'electron/**/*',
++        'packages/netcatty-dsh-bridge/**/*',
+         // The Windows Hello helper is shipped once through win.extraResources.
+         // Exclude local per-arch build output from app.asar on every platform.
+         '!electron/bridges/windowsHelloHelper/build/**/*',
+@@ -165,6 +166,8 @@ module.exports = {
+         '!node_modules/sqlite3/deps/**/*'
+     ],
+     asarUnpack: [
++        'electron/bridges/aiBridge/sdk/nativeExtensions/**/*',
++        'packages/netcatty-dsh-bridge/**/*',
+         'node_modules/node-pty/**/*',
+         'node_modules/ssh2/**/*',
+         'node_modules/cpu-features/**/*',
+diff --git a/electron/bridges/aiBridge.cjs b/electron/bridges/aiBridge.cjs
+index 3ab537d..0991423 100644
+--- a/electron/bridges/aiBridge.cjs
++++ b/electron/bridges/aiBridge.cjs
+@@ -1010,6 +1010,8 @@ function cleanup() {
+     registeredContext?.codebuddySessionManager?.closeAll?.();
+   } catch {}
+ 
++  void registeredContext?.nativeSessionManager?.closeAll?.();
++
+   for (const [id, session] of codexLoginSessions) {
+     try {
+       stopCodexLoginProcess(session);
+@@ -1032,10 +1034,15 @@ function reportOpenedSessionActivity(event) {
+   return mcpServerBridge.reportOpenedSessionActivity?.(event) ?? false;
+ }
+ 
++function shutdownNativeAgents() {
++  return registeredContext?.nativeSessionManager?.closeAll?.() || Promise.resolve();
++}
++
+ module.exports = {
+   init,
+   registerHandlers,
+   cleanup,
++  shutdownNativeAgents,
+   reportOpenedSessionActivity,
+   buildExternalAgentSystemContext,
+   buildExternalAgentContextualPrompt,
+diff --git a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
+index f80085c..9baaac6 100644
+--- a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
++++ b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
+@@ -1,4 +1,5 @@
+ /* eslint-disable no-undef */
++const { nativeEntry, prepareNativeCommand, resolveNativeCli } = require('./sdk/nativeCli.cjs');
+ function getCursorPlatformPackageName(platform = process.platform, arch = process.arch) {
+   if (platform === "darwin" && (arch === "arm64" || arch === "x64")) return `@cursor/sdk-darwin-${arch}`;
+   if (platform === "linux" && (arch === "arm64" || arch === "x64")) return `@cursor/sdk-linux-${arch}`;
+@@ -78,6 +79,11 @@ async function probeCursorSdkAvailability(shellEnv, options = {}) {
+ 
+ function registerAgentDiscoveryHandlers(ctx) {
+   with (ctx) {
++  async function probeAgentVersion(engine, cliPath, env) {
++    if (!['omp', 'pi', 'dsh'].includes(engine)) return probeCliVersion(cliPath, ['--version'], env);
++    const spec = prepareNativeCommand(nativeEntry(cliPath, engine), ['--version'], env);
++    return probeCliVersion(spec.command, spec.args, env);
++  }
+   ipcMain.handle("netcatty:ai:agents:discover", async (event, options = {}) => {
+     if (!validateSenderOrSettings(event)) return { ok: false, error: "Unauthorized IPC sender" };
+     if (options?.refreshShellEnv) {
+@@ -85,6 +91,9 @@ function registerAgentDiscoveryHandlers(ctx) {
+     }
+     const agents = [];
+     const knownAgents = [
++      { command: "omp", name: "Oh My Pi", icon: "terminal", description: "OMP native RPC", sdkBackend: "omp", args: [] },
++      { command: "pi", name: "Pi", icon: "terminal", description: "Pi native RPC", sdkBackend: "pi", args: [] },
++      { command: "dsh", name: "DeepSeek Harness", icon: "terminal", description: "DSH CLI bridge", sdkBackend: "dsh", args: [] },
+       { command: "claude", name: "Claude Code", icon: "claude",
+         description: "Anthropic's agentic coding assistant", sdkBackend: "claude", args: [] },
+       { command: "codex", name: "Codex CLI", icon: "openai",
+@@ -118,12 +127,13 @@ function registerAgentDiscoveryHandlers(ctx) {
+         ? (cursorSdkStatus.cliLoginOk
+           ? (cursorSdkStatus.cliBinPath || "cursor")
+           : (cursorSdkStatus.sdkInstalled ? "cursor" : (cursorSdkStatus.cliBinPath || "cursor")))
++        : ['omp', 'pi', 'dsh'].includes(agent.command) ? resolveNativeCli(agent.command, shellEnv)
+         : await resolveCliFromPathAsync(agent.command, shellEnv); // Layer-1: locate
+       if (!resolvedPath || seenPaths.has(resolvedPath)) continue;
+ 
+       const probe = agent.command === "cursor"
+         ? { exitCode: 0, version: cursorSdkStatus.version }
+-        : await probeCliVersion(resolvedPath, ["--version"], shellEnv); // Layer-2: version
++        : await probeAgentVersion(agent.command, resolvedPath, shellEnv); // Layer-2: version
+       const hasPlausibleVersion = agent.command === "cursor"
+         ? probe.exitCode === 0
+         : probe.exitCode === 0 && isPlausibleCliVersionOutput(probe.version);
+@@ -206,7 +216,7 @@ function registerAgentDiscoveryHandlers(ctx) {
+       // make Settings appear to accept one binary while actually using another.
+       resolvedPath = normalizeCliPathForPlatform(customPath);
+     } else {
+-      resolvedPath = await resolveCliFromPathAsync(command, shellEnv);
++      resolvedPath = ['omp', 'pi', 'dsh'].includes(command) ? resolveNativeCli(command, shellEnv) : await resolveCliFromPathAsync(command, shellEnv);
+     }
+ 
+     if (command === "cursor") {
+@@ -245,12 +255,12 @@ function registerAgentDiscoveryHandlers(ctx) {
+       return { path: null, binPath: null, version: null, available: false, installed: false };
+     }
+ 
+-    const probe = await probeCliVersion(resolvedPath, ["--version"], shellEnv);
++    const probe = await probeAgentVersion(command, resolvedPath, shellEnv);
+     const hasPlausibleVersion = command === "cursor"
+       ? probe.exitCode === 0
+       : probe.exitCode === 0 && isPlausibleCliVersionOutput(probe.version);
+     if (!hasPlausibleVersion) {
+-      return { path: resolvedPath, binPath: resolvedPath, version: null, available: false, installed: true };
++      return { path: resolvedPath, binPath: resolvedPath, version: null, available: false, installed: true, error: probe.output || 'CLI --version failed' };
+     }
+ 
+     return { path: resolvedPath, binPath: resolvedPath, version: probe.version, available: true, installed: true };
+diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
+new file mode 100644
+index 0000000..a03c8a3
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
+@@ -0,0 +1,70 @@
++"use strict";
++const { nativeDriver, resourcePath, writeSessionFile } = require('./nativeSessionManager.cjs');
++
++const implementation = {
++  async launch(session) {
++    const { ctx } = session;
++    const patch = [
++      { id: 'sdk-jsonrpc-server', disabled: true },
++      { insert: [{ id: 'netcatty-questions', name: '@deepseek-ai/dsh-tool-ask-user', config: { mode: 'timed' } }] },
++      { insert: [{ id: 'netcatty-bridge', name: resourcePath('../../../..', 'packages/netcatty-dsh-bridge/bridge.mjs') }] },
++    ];
++    for (const server of ctx.injectedMcpServers || []) patch.push({ insert: [{ id: 'netcatty-mcp', name: '@deepseek-ai/dsh-mcp-client', config: {
++      transport: 'stdio', serverName: 'netcatty', command: server.command, args: server.args,
++      env: Object.fromEntries(server.env.map(({ name, value }) => [name, value])), failOnStartupError: true, toolCallTimeoutMs: 300000,
++    } }] });
++    const patchPath = await writeSessionFile(session, 'dsh.patch.json', JSON.stringify(patch));
++    const args = [...JSON.parse(ctx.env.NETCATTY_NATIVE_ARGS || '[]'), '--profile', ctx.env.NETCATTY_DSH_PROFILE || 'sdk', '--patch', patchPath];
++    return { args, env: { ...ctx.env, NETCATTY_DSH_ENTRY: session.entry, NETCATTY_DSH_VERSION: session.version,
++      NETCATTY_NATIVE_LOCAL_TOOLS: ctx.env.NETCATTY_NATIVE_LOCAL_TOOLS || 'disabled', NETCATTY_NATIVE_PERMISSION: ctx.permissionMode,
++    } };
++  },
++  async open(session) {
++    await session.rpc.waitReady();
++    const model = session.ctx.model;
++    const separator = model?.indexOf('/') ?? -1;
++    const result = await session.rpc.request('initialize', {
++      cwd: session.ctx.cwd, resumeSessionId: session.resume,
++      ...(model ? { provider: separator < 0 ? undefined : model.slice(0, separator), model: separator < 0 ? model : model.slice(separator + 1) } : {}),
++    });
++    session.setNativeId(result.sessionId);
++    const snapshot = await session.rpc.request('snapshot');
++    session.plan = snapshot.plan;
++    for (const job of snapshot.jobs) session.tasks.set(job.id, { ...job, title: job.label, kind: 'job' });
++  },
++  frame(session, frame) {
++    if (frame.type === 'plan-state') { session.plan = frame.plan; session.publish(); }
++    if (frame.type === 'assistant-stream') {
++      const chunk = frame.frame.chunk;
++      if (chunk?.type === 'text-delta') session.emit('text', chunk.text);
++      if (chunk?.type === 'reasoning-delta') session.emit('reasoning', chunk.text);
++      if (chunk?.type === 'usage') session.emit('usage', { inputTokens: chunk.usage.inputTokens, outputTokens: chunk.usage.outputTokens });
++    }
++    if (frame.type === 'session-event') {
++      const event = frame.event;
++      if (event.type === 'tool/call') session.emit('toolCall', event.data.name, JSON.parse(event.data.arguments), event.data.callId);
++      if (event.type === 'tool/result') session.emit('toolResult', event.data.message.source.callId, event.data.message.content);
++      if (event.type === 'turn/end' && event.data.reason.kind === 'error') session.turnError = new Error(JSON.stringify(event.data.reason));
++      if (event.type === 'todo/write') {
++        const items = event.data.todos.map((todo) => ({ text: todo.content, completed: todo.status === 'completed' }));
++        session.emit('planUpdate', 'dsh-todos', items, items.every((item) => item.completed) ? 'completed' : 'running');
++      }
++    }
++    if (frame.type === 'job-event' && frame.event.job) {
++      const job = frame.event.job;
++      session.tasks.set(job.id, { ...job, title: job.label, kind: 'job' }); session.publish();
++    }
++    if (frame.type === 'agent-status' && frame.primary && !session.turn && !session.closing) {
++      session.status = frame.status; session.publish();
++    }
++    if (frame.type === 'turn-settled') {
++      if (session.turn && frame.turnId !== session.turn.id) return;
++      if (session.turn) session.finish(session.turnError);
++      else if (!session.closing) { session.status = session.turnError ? 'error' : 'idle'; session.publish(); }
++      session.turnError = null;
++    }
++    if (frame.type === 'fatal') session.finish(new Error(frame.error));
++  },
++  async prompt(session, message) { await session.rpc.request('prompt', { message, turnId: session.turn.id }); },
++};
++module.exports = nativeDriver('dsh', implementation);
+diff --git a/electron/bridges/aiBridge/sdk/index.cjs b/electron/bridges/aiBridge/sdk/index.cjs
+index 224fccd..54bf2a0 100644
+--- a/electron/bridges/aiBridge/sdk/index.cjs
++++ b/electron/bridges/aiBridge/sdk/index.cjs
+@@ -31,6 +31,9 @@ function hasCodebuddyQueryOnlyOptions(options) {
+ }
+ 
+ const DRIVER_REGISTRY = {
++  omp: require("./ompRpcDriver.cjs"),
++  pi: require("./piRpcDriver.cjs"),
++  dsh: require("./dshNativeDriver.cjs"),
+   claude: {
+     async runTurn(ctx) {
+       const options = claude.buildClaudeQueryOptions({
+diff --git a/electron/bridges/aiBridge/sdk/index.test.cjs b/electron/bridges/aiBridge/sdk/index.test.cjs
+index 994da00..3e5f36f 100644
+--- a/electron/bridges/aiBridge/sdk/index.test.cjs
++++ b/electron/bridges/aiBridge/sdk/index.test.cjs
+@@ -8,11 +8,11 @@ const {
+ const { codebuddySessionManager } = require("./codebuddySessionManager.cjs");
+ 
+ test("registry exposes SDK backends", () => {
+-  assert.deepEqual(listBackends().sort(), ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]);
++  assert.deepEqual(listBackends().sort(), ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]);
+ });
+ 
+ test("getDriver returns a driver with runTurn", () => {
+-  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]) {
++  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]) {
+     const d = getDriver(key);
+     assert.equal(typeof d.runTurn, "function", `${key} must expose runTurn`);
+   }
+@@ -23,7 +23,7 @@ test("getDriver throws on unknown backend", () => {
+ });
+ 
+ test("SDK drivers expose listModels; codex returns [] (no catalog)", async () => {
+-  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]) {
++  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]) {
+     assert.equal(typeof getDriver(key).listModels, "function", `${key} must expose listModels`);
+   }
+   assert.deepEqual(await getDriver("codex").listModels({}), []);
+diff --git a/electron/bridges/aiBridge/sdk/nativeCli.cjs b/electron/bridges/aiBridge/sdk/nativeCli.cjs
+new file mode 100644
+index 0000000..3e8132b
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeCli.cjs
+@@ -0,0 +1,29 @@
++"use strict";
++const fs = require('node:fs');
++const path = require('node:path');
++const { prepareCommandForSpawn, resolveCliFromPath } = require('../../ai/shellUtils.cjs');
++
++// Keep Windows launchers intact: Pi's installer can bundle its own runtime
++// beside pi.cmd, while npm uses node_modules. Both own their launch details.
++function nativeEntry(command) {
++  return fs.realpathSync(command);
++}
++function resolveNativeCli(engine, env) {
++  const found = resolveCliFromPath(engine, env);
++  if (found || process.platform !== 'win32') return found;
++  const user = env.USERPROFILE;
++  const candidates = {
++    omp: env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'omp', 'omp.exe'),
++    pi: user && path.join(user, '.pi', 'agent', 'bin', 'pi.cmd'),
++    dsh: env.APPDATA && path.join(env.APPDATA, 'npm', 'dsh.cmd'),
++  };
++  const candidate = candidates[engine];
++  return candidate && fs.existsSync(candidate) ? candidate : null;
++}
++function prepareNativeCommand(command, args, env) {
++  if (/\.[cm]?js$/i.test(command)) {
++    return { command: resolveCliFromPath('node', env) || 'node', args: [command, ...args], shell: false };
++  }
++  return prepareCommandForSpawn(command, args, { unwrapNativeExe: false });
++}
++module.exports = { nativeEntry, prepareNativeCommand, resolveNativeCli };
+diff --git a/electron/bridges/aiBridge/sdk/nativeCli.test.cjs b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
+new file mode 100644
+index 0000000..abbcfbe
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
+@@ -0,0 +1,19 @@
++"use strict";
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const { nativeEntry } = require('./nativeCli.cjs');
++
++test('Windows Pi installer and npm command launchers keep their original entry', () => {
++  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'netcatty-native-cli-'));
++  try {
++    for (const relative of ['.pi/agent/bin/pi.cmd', 'npm/dsh.cmd']) {
++      const shim = path.join(root, relative);
++      fs.mkdirSync(path.dirname(shim), { recursive: true });
++      fs.writeFileSync(shim, '@echo off\r\n');
++      assert.equal(nativeEntry(shim), shim);
++    }
++  } finally { fs.rmSync(root, { recursive: true, force: true }); }
++});
+diff --git a/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs b/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs
+new file mode 100644
+index 0000000..0d96183
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs
+@@ -0,0 +1,31 @@
++// Deliberately limited to the native RPC UI contract supported by Netcatty.
++export default function netcattyExtension(pi) {
++  const config = JSON.parse(process.env.NETCATTY_NATIVE_CONFIG || '{}');
++  if (config.engine === 'pi') {
++    for (const server of config.mcpServers || []) {
++      pi.registerMcpServer(server.name, {
++        command: server.command, args: server.args,
++        env: Object.fromEntries(server.env.map(({ name, value }) => [name, value])),
++        exposure: 'direct', timeout: 300000,
++      });
++    }
++  }
++  pi.on('tool_call', async (event, ctx) => {
++    const remote = config.engine === 'omp'
++      ? event.toolName.startsWith('netcatty__')
++      : (config.mcpServers || []).some((server) => event.toolName.startsWith(`mcp__${server.name}__`));
++    if (remote || (config.engine === 'omp' && ['ask', 'todo', 'wait'].includes(event.toolName))) return;
++    if (config.localTools !== 'confirm' || config.permissionMode === 'observer') {
++      return { block: true, reason: 'Local tools are disabled. Use Netcatty MCP for connected terminals.' };
++    }
++    const approved = await ctx.ui.confirm('Netcatty local tool', JSON.stringify({ tool: event.toolName, args: event.input, cwd: ctx.cwd }));
++    if (!approved || ctx.signal?.aborted) return { block: true, reason: 'Local tool denied or cancelled.' };
++  });
++  pi.registerCommand('netcatty-check', {
++    description: 'Check the Netcatty extension interaction',
++    handler: async (_args, ctx) => {
++      const value = await ctx.ui.input('Netcatty extension check', 'Enter a short message');
++      ctx.ui.setWidget('netcatty-check', [value === undefined ? 'Cancelled' : `Received: ${value}`]);
++    },
++  });
++}
+diff --git a/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs b/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs
+new file mode 100644
+index 0000000..9da1315
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs
+@@ -0,0 +1,156 @@
++"use strict";
++const { spawn } = require('node:child_process');
++const { EventEmitter } = require('node:events');
++const { StringDecoder } = require('node:string_decoder');
++const { prepareNativeCommand } = require('./nativeCli.cjs');
++const { processTree } = require('../../ptyProcessTree.cjs');
++
++// OMP v2 alone uses chunked frames. Pi and the DSH bridge stay plain JSONL.
++class OmpFrameDecoder {
++  decode(frame) {
++    if (frame.type !== 'rpc_chunk') {
++      if (this.chunk) throw new Error('Interrupted OMP chunk sequence');
++      return frame;
++    }
++    if (!this.chunk) {
++      if (frame.index !== 0 || !Number.isInteger(frame.count) || frame.count < 1 ||
++          !Number.isInteger(frame.byteLength) || frame.byteLength < 1 || frame.byteLength > 67108864) {
++        throw new Error('Invalid OMP chunk header');
++      }
++      this.chunk = { id: frame.chunkId, count: frame.count, length: frame.byteLength, parts: [], bytes: 0 };
++    }
++    const chunk = this.chunk;
++    if (frame.chunkId !== chunk.id || frame.count !== chunk.count || frame.byteLength !== chunk.length || frame.index !== chunk.parts.length) {
++      throw new Error('Invalid OMP chunk sequence');
++    }
++    const bytes = Buffer.from(frame.data, 'base64');
++    chunk.bytes += bytes.length;
++    if (chunk.bytes > chunk.length) throw new Error('OMP chunk exceeded announced size');
++    chunk.parts.push(bytes);
++    if (chunk.parts.length !== chunk.count) return null;
++    this.chunk = null;
++    if (chunk.bytes !== chunk.length) throw new Error('Incomplete OMP frame');
++    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunk.parts)));
++  }
++}
++
++class NativeRpcConnection extends EventEmitter {
++  constructor({ command, args, env, cwd, engine }) {
++    super();
++    this.pending = new Map();
++    this.seq = 0;
++    this.stderr = '';
++    this.engine = engine;
++    this.decoder = engine === 'omp' ? new OmpFrameDecoder() : null;
++    const spec = prepareNativeCommand(command, args, env);
++    this.child = spawn(spec.command, spec.args, {
++      cwd, env, shell: spec.shell, windowsHide: true,
++      detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'],
++    });
++    this.closed = new Promise((resolve) => this.child.once('close', resolve));
++    this.child.once('error', (error) => this.fail(error));
++    this.child.once('exit', (code, signal) => this.fail(new Error(`${engine} exited (${code ?? signal}). ${this.stderr}`)));
++    this.child.stdin.on('error', (error) => this.fail(error));
++    this.child.stderr.setEncoding('utf8');
++    this.child.stderr.on('data', (data) => {
++      // Keep diagnostics bounded and redact credentials before exposing errors.
++      for (const [key, value] of Object.entries(env || {})) {
++        if (/KEY|TOKEN|SECRET|PASSWORD/i.test(key) && value?.length > 3) data = data.split(value).join('[redacted]');
++      }
++      this.stderr = (this.stderr + data).slice(-6000);
++    });
++    const utf8 = new StringDecoder('utf8');
++    let buffer = '';
++    this.child.stdout.on('data', (bytes) => {
++      buffer += utf8.write(bytes);
++      try {
++        let end;
++        while ((end = buffer.indexOf('\n')) >= 0) {
++          const line = buffer.slice(0, end).replace(/\r$/, '');
++          buffer = buffer.slice(end + 1);
++          if (!line) continue;
++          if (Buffer.byteLength(line) > 67108864) throw new Error('Native RPC frame too large');
++          const parsed = JSON.parse(line);
++          const frame = this.decoder ? this.decoder.decode(parsed) : parsed;
++          if (!frame) continue;
++          if (frame.type === 'ready') { this.ready = frame; this.emit('ready', frame); }
++          if (frame.type === 'response' && this.pending.has(frame.id)) {
++            const pending = this.pending.get(frame.id);
++            this.pending.delete(frame.id);
++            clearTimeout(pending.timer);
++            if (frame.success === false) pending.reject(new Error(frame.error));
++            else pending.resolve(frame.data);
++          } else this.emit('frame', frame);
++        }
++        if (Buffer.byteLength(buffer) > 67108864) throw new Error('Native RPC line too large');
++      } catch (error) { this.fail(new Error(`${engine} protocol: ${error.message}`)); }
++    });
++  }
++  fail(error) {
++    if (this.failure) return;
++    this.failure = error;
++    for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.reject(error); }
++    this.pending.clear();
++    this.emit('fatal', error);
++  }
++  send(frame) {
++    if (this.failure) throw this.failure;
++    this.child.stdin.write(`${JSON.stringify(frame)}\n`);
++  }
++  request(type, data = {}, timeoutMs = 30000) {
++    if (this.failure) return Promise.reject(this.failure);
++    const id = `nc-${++this.seq}`;
++    return new Promise((resolve, reject) => {
++      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`${this.engine}: ${type} timed out`)); }, timeoutMs);
++      this.pending.set(id, { resolve, reject, timer });
++      try { this.send({ ...data, id, type }); } catch (error) { clearTimeout(timer); this.pending.delete(id); reject(error); }
++    });
++  }
++  waitReady() {
++    if (this.ready) return Promise.resolve(this.ready);
++    if (this.failure) return Promise.reject(this.failure);
++    return new Promise((resolve, reject) => {
++      const done = (error, value) => { clearTimeout(timer); this.off('ready', ready); this.off('fatal', fatal); error ? reject(error) : resolve(value); };
++      const ready = (value) => done(null, value);
++      const fatal = (error) => done(error);
++      const timer = setTimeout(() => done(new Error(`${this.engine} did not become ready. ${this.stderr}`)), 30000);
++      this.once('ready', ready); this.once('fatal', fatal);
++    });
++  }
++  async close() {
++    if (this.closePromise) return this.closePromise;
++    this.closePromise = (async () => {
++      // Capture Windows descendants before a cooperative CLI can exit/reparent them.
++      const descendants = [];
++      if (process.platform === 'win32' && this.child.pid) {
++        const collect = async (pid) => {
++          const key = `native-${pid}`;
++          processTree.registerPid(key, pid);
++          const children = await processTree.getChildProcesses(key);
++          processTree.unregisterPid(key);
++          for (const child of children) { descendants.push(child.pid); await collect(child.pid); }
++        };
++        await collect(this.child.pid);
++      }
++      if (!this.failure) await this.request(this.engine === 'dsh' ? 'shutdown' : 'abort', {}, 1500).catch(() => {});
++      this.child.stdin.end();
++      const kill = () => {
++        if (!this.child.pid) return;
++        if (process.platform === 'win32') {
++          for (const pid of [this.child.pid, ...descendants]) {
++            const killer = spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
++            killer.on('error', () => {});
++          }
++        }
++        else { try { process.kill(-this.child.pid, 'SIGKILL'); } catch { /* already exited */ } }
++      };
++      const timer = setTimeout(kill, 1500);
++      await this.closed;
++      clearTimeout(timer);
++      // Also reap descendants if a CLI exited before its MCP/shell children.
++      kill();
++    })();
++    return this.closePromise;
++  }
++}
++module.exports = { NativeRpcConnection, OmpFrameDecoder };
+diff --git a/electron/bridges/aiBridge/sdk/nativeRpcConnection.test.cjs b/electron/bridges/aiBridge/sdk/nativeRpcConnection.test.cjs
+new file mode 100644
+index 0000000..ee58f59
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeRpcConnection.test.cjs
+@@ -0,0 +1,17 @@
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const { OmpFrameDecoder } = require('./nativeRpcConnection.cjs');
++
++test('OMP v2 joins byte chunks before decoding UTF-8 and preserves Unicode line separators', () => {
++  const value = { type: 'message_update', text: '\u4e2d\u6587\u2028next' };
++  const bytes = Buffer.from(JSON.stringify(value));
++  const cut = bytes.indexOf(Buffer.from('\u4e2d')) + 1;
++  const chunks = [bytes.subarray(0, cut), bytes.subarray(cut)];
++  const decoder = new OmpFrameDecoder();
++  const frames = chunks.map((chunk, index) => ({ type: 'rpc_chunk', chunkId: 'one', index, count: 2, byteLength: bytes.length, data: chunk.toString('base64') }));
++  assert.equal(decoder.decode(frames[0]), null);
++  assert.deepEqual(decoder.decode(frames[1]), value);
++  const broken = new OmpFrameDecoder();
++  broken.decode(frames[0]);
++  assert.throws(() => broken.decode({ ...frames[1], index: 0 }), /sequence/);
++});
+diff --git a/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
+new file mode 100644
+index 0000000..540a315
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
+@@ -0,0 +1,221 @@
++"use strict";
++const path = require('node:path');
++const fs = require('node:fs/promises');
++const { randomUUID, createHash } = require('node:crypto');
++const { execFile } = require('node:child_process');
++const { NativeRpcConnection } = require('./nativeRpcConnection.cjs');
++const { nativeEntry, prepareNativeCommand } = require('./nativeCli.cjs');
++
++const sessions = new Map();
++const VERSIONS = { omp: '18.5.1', pi: '1.0.3', dsh: '0.2.0-rc.2' };
++function fingerprint(ctx) {
++  return createHash('sha256').update(JSON.stringify([ctx.binPath, ctx.cwd, ctx.model, ctx.env, ctx.permissionMode])).digest('hex');
++}
++function versionOf(command, env) {
++  const spec = prepareNativeCommand(command, ['--version'], env);
++  return new Promise((resolve, reject) => execFile(spec.command, spec.args, {
++    env, shell: spec.shell, windowsHide: true, timeout: 15000,
++  }, (error, stdout) => error ? reject(error) : resolve(stdout.trim())));
++}
++function resourcePath(...parts) {
++  return path.join(__dirname.replace(/app\.asar([/\\])/, 'app.asar.unpacked$1'), ...parts);
++}
++function decodeResume(value, engine, ctx) {
++  if (!value) return undefined;
++  const identity = JSON.parse(value);
++  if (identity.v !== 1 || identity.engine !== engine || identity.cwd !== path.resolve(ctx.cwd)) {
++    throw new Error('Native session runtime or workspace changed. Start a new chat to use this configuration.');
++  }
++  return identity.id;
++}
++
++class NativeSession {
++  constructor(engine, implementation, ctx) {
++    this.engine = engine;
++    this.implementation = implementation;
++    this.ctx = ctx;
++    this.key = fingerprint(ctx);
++    this.instanceId = randomUUID();
++    this.interactions = new Map();
++    this.tasks = new Map();
++    this.widgets = new Map();
++    this.status = 'starting';
++    this.seq = 0;
++    this.disposers = [];
++    if (ctx.sender?.once) {
++      const destroyed = () => { void this.stop(); };
++      ctx.sender.once('destroyed', destroyed);
++      this.disposers.push(() => ctx.sender.removeListener('destroyed', destroyed));
++    }
++  }
++  publish() {
++    this.ctx.emitNativeSession?.(this.snapshot());
++  }
++  snapshot() {
++    return {
++      chatSessionId: this.ctx.chatSessionId, engine: this.engine, instanceId: this.instanceId,
++      seq: ++this.seq, version: this.version, status: this.status,
++      plan: this.plan,
++      interactions: [...this.interactions.values()], tasks: [...this.tasks.values()], widgets: [...this.widgets.values()],
++    };
++  }
++  emit(method, ...args) {
++    if (this.turn) this.turn.emitter[method]?.(...args);
++    else if (method === 'text') {
++      const previous = this.widgets.get('continuation')?.text || '';
++      this.widgets.set('continuation', { id: 'continuation', text: previous + args[0] });
++      this.publish();
++    }
++  }
++  setNativeId(id) {
++    this.nativeId = id;
++    this.identity = JSON.stringify({ v: 1, engine: this.engine, version: this.version, cwd: path.resolve(this.ctx.cwd), id });
++    this.emit('sessionId', this.identity);
++  }
++  async start() {
++    this.entry = nativeEntry(this.ctx.binPath, this.engine);
++    this.version = await versionOf(this.entry, this.ctx.env);
++    this.resume = decodeResume(this.ctx.resumeSessionId, this.engine, this.ctx);
++    if (this.ctx.signal?.aborted || this.closing) throw new Error("Native startup cancelled");
++    const spec = await this.implementation.launch(this);
++    if (this.ctx.signal?.aborted || this.closing) throw new Error("Native startup cancelled");
++    this.rpc = new NativeRpcConnection({ command: this.entry, ...spec, engine: this.engine, cwd: this.ctx.cwd });
++    this.rpc.on('fatal', (error) => {
++      if (this.closing) return;
++      this.status = 'error'; this.widgets.set('error', { id: 'error', text: error.message }); this.publish();
++      this.finish(error);
++      void this.close();
++    });
++    this.rpc.on('frame', (frame) => {
++      try {
++        if (frame.type === 'extension_ui_request' || frame.type === 'interaction') {
++          void this.handleUi(frame).catch((error) => { this.finish(error); void this.close(); }); return;
++        }
++        if (frame.type === 'interaction-cleared') { this.interactions.delete(frame.id); this.publish(); return; }
++        this.implementation.frame(this, frame);
++      } catch (error) { this.finish(error); }
++    });
++    await this.implementation.open(this);
++    this.status = 'idle'; this.publish();
++  }
++  async handleUi(frame) {
++    const method = frame.method || frame.kind;
++    if (method === 'cancel') { this.interactions.delete(frame.targetId); this.publish(); return; }
++    if (['notify', 'setStatus', 'setWidget', 'setTitle', 'set_editor_text'].includes(method)) {
++      const id = frame.widgetKey || frame.statusKey || method;
++      const text = frame.widgetLines?.join('\n') || frame.statusText || frame.message || frame.title || frame.text || '';
++      if (text) this.widgets.set(id, { id, text }); else this.widgets.delete(id);
++      this.publish(); return;
++    }
++    if (method === 'approval' || (method === 'confirm' && frame.title === 'Netcatty local tool')) {
++      const ctx = this.ctx;
++      const approved = ctx.permissionMode !== 'observer' && await ctx.requestApprovalFromRenderer?.(
++        `${this.engine.toUpperCase()} local workspace: ${frame.toolName || 'tool'}`,
++        { cwd: ctx.cwd, ...frame.args, details: frame.reason || frame.message, executionScope: 'local-workspace' }, ctx.chatSessionId, { allowSession: false },
++      );
++      if (!this.closing && !ctx.signal?.aborted) {
++        this.rpc.send(this.engine === 'dsh'
++          ? { type: 'interaction_response', id: frame.id, approved: Boolean(approved) }
++          : { type: 'extension_ui_response', id: frame.id, confirmed: Boolean(approved) });
++      }
++      return;
++    }
++    this.interactions.set(frame.id, { ...frame, method });
++    this.publish();
++    if (frame.timeout) {
++      const timer = setTimeout(() => { this.interactions.delete(frame.id); this.publish(); }, frame.timeout);
++      this.disposers.push(() => clearTimeout(timer));
++    }
++  }
++  respond(id, answer) {
++    if (!this.interactions.has(id)) return false;
++    this.interactions.delete(id);
++    this.rpc.send({ ...answer, id, type: this.engine === 'dsh' ? 'interaction_response' : 'extension_ui_response' });
++    this.publish(); return true;
++  }
++  finish(error) {
++    if (!this.turn || (this.closing && this.status !== 'closed')) return;
++    const turn = this.turn; this.turn = null;
++    this.status = this.closing ? 'closed' : error ? 'error' : 'idle'; this.publish();
++    if (error) turn.reject(error);
++    else { turn.emitter.emitDone(); turn.resolve({ sessionId: this.identity }); }
++  }
++  async run(ctx) {
++    if (this.turn) throw new Error('A native turn is already running in this chat');
++    this.ctx = ctx;
++    this.status = 'running';
++    const result = new Promise((resolve, reject) => { this.turn = { id: randomUUID(), resolve, reject, emitter: ctx.emitter }; });
++    void result.catch(() => {}); // Startup failures may arrive before prompt admission returns.
++    const abort = () => { void this.stop(); };
++    ctx.signal?.addEventListener('abort', abort, { once: true });
++    try {
++      if (!this.rpc) await this.start();
++      if (ctx.signal?.aborted) { await this.stop(); return await result; }
++      this.emit('sessionId', this.identity);
++      this.status = 'running'; this.publish();
++      await this.implementation.prompt(this, ctx.prompt);
++    } catch (error) { this.finish(error); await this.close(); }
++    return result.finally(() => ctx.signal?.removeEventListener('abort', abort));
++  }
++  async stop() {
++    this.ctx.clearPendingApprovals?.(this.ctx.chatSessionId);
++    await this.close();
++    this.finish();
++  }
++  async close() {
++    if (this.closing) return this.closing;
++    this.closing = (async () => {
++      this.interactions.clear();
++      await this.rpc?.close();
++      for (const dispose of this.disposers.splice(0)) await dispose();
++      this.status = 'closed'; this.publish();
++      if (sessions.get(this.ctx.chatSessionId) === this) sessions.delete(this.ctx.chatSessionId);
++    })();
++    return this.closing;
++  }
++}
++
++function nativeDriver(engine, implementation) {
++  return {
++    async checkConnection(ctx, testModel = false) {
++      const session = new NativeSession(engine, implementation, ctx);
++      const abort = new AbortController();
++      const timer = setTimeout(() => abort.abort(), 60000);
++      let text = '';
++      try {
++        if (testModel) await session.run({ ...ctx, prompt: 'Reply with OK only. Do not use tools.', signal: abort.signal,
++          emitter: { text: (value) => { text += value; }, emitDone() {} } });
++        else await session.start();
++        if (abort.signal.aborted) throw new Error('Connection check timed out');
++        if (testModel && !text.trim()) throw new Error('Model returned no text');
++        return { version: session.version, protocol: 'ready', modelConnected: testModel };
++      } finally { clearTimeout(timer); await session.close(); }
++    },
++    async runTurn(ctx) {
++      if (ctx.attachments?.length) throw new Error('Native scheme C currently accepts text prompts. Use a file path or Netcatty MCP to read an attachment.');
++      if (ctx.toolIntegrationMode !== 'mcp') throw new Error('Native agents require MCP tool integration in Settings > AI > Tools.');
++      let session = sessions.get(ctx.chatSessionId);
++      if (session && (session.engine !== engine || session.key !== fingerprint(ctx))) { await session.close(); session = null; }
++      if (!session) { session = new NativeSession(engine, implementation, ctx); sessions.set(ctx.chatSessionId, session); }
++      return session.run(ctx);
++    },
++    async listModels() { return []; },
++  };
++}
++const nativeSessionManager = {
++  get(chatSessionId, sender) {
++    const session = sessions.get(chatSessionId);
++    return session && (!sender || session.ctx.sender === sender) ? session : undefined;
++  },
++  async closeForChat(chatSessionId) { await sessions.get(chatSessionId)?.stop(); },
++  async closeAll() { await Promise.all([...sessions.values()].map((session) => session.stop())); },
++};
++async function writeSessionFile(session, name, content) {
++  const dir = path.join(session.ctx.getTempDir(), `native-${session.instanceId}`);
++  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
++  const file = path.join(dir, name);
++  await fs.writeFile(file, content, { mode: 0o600 });
++  session.disposers.push(() => fs.rm(file, { force: true }));
++  return file;
++}
++module.exports = { nativeDriver, nativeSessionManager, resourcePath, writeSessionFile, VERSIONS };
+diff --git a/electron/bridges/aiBridge/sdk/ompRpcDriver.cjs b/electron/bridges/aiBridge/sdk/ompRpcDriver.cjs
+new file mode 100644
+index 0000000..d6f20d6
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/ompRpcDriver.cjs
+@@ -0,0 +1,72 @@
++"use strict";
++const { nativeDriver } = require('./nativeSessionManager.cjs');
++const { launchPiFamily, handleAgentFrame } = require('./piRpcDriver.cjs');
++
++const implementation = {
++  launch: (session) => launchPiFamily(session, 'omp'),
++  async open(session) {
++    await session.rpc.waitReady();
++    await session.rpc.request('negotiate_protocol', { protocolVersion: 2 });
++    await session.rpc.request('set_ask_dialog', { enabled: true });
++    await session.rpc.request('set_subagent_subscription', { level: 'progress' });
++    // Native OMP host tools forward to the same scoped Netcatty MCP process.
++    const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
++    const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
++    const { ToolListChangedNotificationSchema } = require('@modelcontextprotocol/sdk/types.js');
++    session.mcpCalls = new Map();
++    session.hostTools = new Map();
++    const refresh = () => session.rpc.request('set_host_tools', { tools: [...session.hostTools.values()].map((entry) => entry.definition) });
++    for (const server of session.ctx.injectedMcpServers || []) {
++      const client = new Client({ name: 'netcatty-omp-host', version: '1.0.0' });
++      const transport = new StdioClientTransport({ command: server.command, args: server.args, env: { ...session.ctx.env, ...Object.fromEntries(server.env.map(({ name, value }) => [name, value])) }, stderr: 'pipe' });
++      await client.connect(transport);
++      transport.stderr?.resume();
++      session.disposers.push(() => client.close());
++      const update = async () => {
++        const listed = await client.listTools();
++        for (const [name, entry] of session.hostTools) if (entry.client === client) session.hostTools.delete(name);
++        for (const tool of listed.tools) {
++          const name = `netcatty__${tool.name}`;
++          session.hostTools.set(name, { client, toolName: tool.name, definition: {
++            name, description: tool.description || tool.name, parameters: tool.inputSchema, loadMode: 'essential',
++          } });
++        }
++        await refresh();
++      };
++      client.setNotificationHandler(ToolListChangedNotificationSchema, () => update().catch((error) => session.emit('warning', 'mcp-tools', error.message)));
++      await update();
++    }
++    const state = await session.rpc.request('get_state');
++    session.setNativeId(state.sessionFile || state.sessionId);
++  },
++  frame(session, frame) {
++    handleAgentFrame(session, frame);
++    if (frame.type === 'host_tool_call') {
++      const host = session.hostTools.get(frame.toolName);
++      const abort = new AbortController();
++      session.mcpCalls.set(frame.id, abort);
++      void host.client.callTool({ name: host.toolName, arguments: frame.arguments }, undefined, { signal: abort.signal }).then(
++        (result) => { if (!session.closing) session.rpc.send({ type: 'host_tool_result', id: frame.id, result, isError: result.isError }); },
++        (error) => { if (!session.closing) session.rpc.send({ type: 'host_tool_result', id: frame.id, isError: true, result: { content: [{ type: 'text', text: error.message }] } }); },
++      ).finally(() => session.mcpCalls.delete(frame.id));
++    }
++    if (frame.type === 'host_tool_cancel') session.mcpCalls.get(frame.targetId)?.abort();
++    if (frame.type === 'subagent_lifecycle' || frame.type === 'subagent_progress') {
++      const task = frame.payload;
++      const id = task.id || [...session.tasks.values()].find((entry) => entry.index === task.index)?.id;
++      if (id) session.tasks.set(id, { ...session.tasks.get(id), ...task, name: task.agent, id, kind: 'subagent' });
++      session.publish();
++    }
++    if (frame.type === 'prompt_result') {
++      if (frame.status === 'error') session.turnError = new Error(frame.error?.message || 'OMP prompt failed');
++      if (frame.agentInvoked === false) { session.finish(session.turnError); session.turnError = null; }
++    }
++    if (frame.type === 'session_settled') { session.finish(session.turnError); session.turnError = null; }
++    if (frame.type === 'rpc_frame_error' || frame.type === 'fatal') session.finish(new Error(frame.error || 'OMP frame overflow'));
++  },
++  async prompt(session, message) {
++    const result = await session.rpc.request('prompt', { message });
++    if (result?.agentInvoked === false) session.finish();
++  },
++};
++module.exports = nativeDriver('omp', implementation);
+diff --git a/electron/bridges/aiBridge/sdk/piRpcDriver.cjs b/electron/bridges/aiBridge/sdk/piRpcDriver.cjs
+new file mode 100644
+index 0000000..6b84ab6
+--- /dev/null
++++ b/electron/bridges/aiBridge/sdk/piRpcDriver.cjs
+@@ -0,0 +1,49 @@
++"use strict";
++const { nativeDriver, resourcePath } = require('./nativeSessionManager.cjs');
++const { randomUUID } = require('node:crypto');
++
++function launchPiFamily(session, engine) {
++  const { ctx } = session;
++  const args = [...JSON.parse(ctx.env.NETCATTY_NATIVE_ARGS || '[]'), '--mode', engine === 'omp' ? 'rpc-ui' : 'rpc', '--no-extensions', '--extension', resourcePath('nativeExtensions', 'controlled.mjs')];
++  // Pi implements MCP as a built-in extension; discovery remains disabled.
++  if (engine === 'pi') args.push('--extension', 'builtin:mcp');
++  if (ctx.model) args.push('--model', ctx.model);
++  if (session.resume) args.push('--session', session.resume);
++  for (const extension of JSON.parse(ctx.env.NETCATTY_NATIVE_EXTENSIONS || '[]')) args.push('--extension', extension);
++  const mcpServers = (ctx.injectedMcpServers || []).map((server) => ({ ...server, name: `netcatty_${randomUUID().slice(0, 8)}` }));
++  return { args, env: { ...ctx.env, NETCATTY_NATIVE_CONFIG: JSON.stringify({
++    engine, mcpServers, localTools: ctx.env.NETCATTY_NATIVE_LOCAL_TOOLS || 'disabled', permissionMode: ctx.permissionMode,
++  }) } };
++}
++function handleAgentFrame(session, frame) {
++  const message = frame.assistantMessageEvent;
++  if (frame.type === 'message_update' && message) {
++    if (message.type === 'text_delta') session.emit('text', message.delta);
++    if (message.type === 'thinking_delta') session.emit('reasoning', message.delta);
++    if (message.type === 'thinking_end') session.emit('reasoningEnd');
++  }
++  if (frame.type === 'tool_execution_start') session.emit('toolCall', frame.toolName, frame.args, frame.toolCallId);
++  if (frame.type === 'tool_execution_end') session.emit('toolResult', frame.toolCallId, frame.result, frame.toolName);
++  if (frame.type === 'message_end' && frame.message?.role === 'assistant') {
++    const { usage, stopReason, errorMessage } = frame.message;
++    if (usage) session.emit('usage', { inputTokens: usage.input, outputTokens: usage.output, cachedInputTokens: usage.cacheRead, totalTokens: usage.totalTokens });
++    if (stopReason === 'error') session.turnError = new Error(errorMessage || 'Native model request failed');
++  }
++  if (frame.type === 'extension_error') session.emit('warning', 'extension', frame.error);
++}
++const implementation = {
++  launch: (session) => launchPiFamily(session, 'pi'),
++  async open(session) {
++    const state = await session.rpc.request('get_state');
++    session.setNativeId(state.sessionFile || state.sessionId);
++  },
++  frame(session, frame) {
++    handleAgentFrame(session, frame);
++    if (frame.type === 'agent_settled') { session.finish(session.turnError); session.turnError = null; }
++  },
++  async prompt(session, message) {
++    const result = await session.rpc.request('prompt', { message });
++    if (result?.disposition === 'handled') session.finish();
++  },
++};
++module.exports = { ...nativeDriver('pi', implementation), launchPiFamily, handleAgentFrame };
+diff --git a/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs b/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
+index dea559b..a13ba8f 100644
+--- a/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
++++ b/electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs
+@@ -14,6 +14,10 @@ const { probeCodexAppServer } = require("../codexAppServer/probe.cjs");
+ const { codebuddySessionManager } = require("./codebuddySessionManager.cjs");
+ const codebuddyDriver = require("./codebuddyDriver.cjs");
+ 
++const { nativeSessionManager } = require("./nativeSessionManager.cjs");
++const { resolveNativeCli } = require("./nativeCli.cjs");
++const NATIVE_BACKENDS = new Set(["omp", "pi", "dsh"]);
++
+ const VALID_BACKENDS = new Set(listBackends());
+ 
+ // Pre-flight model catalog cache. SDK listModels often spawns a CLI/server
+@@ -382,6 +386,10 @@ function resolveSdkBackendBinPath({
+       : realPath;
+     return sdkPath || undefined;
+   }
++  if (NATIVE_BACKENDS.has(backendKey)) {
++    const rawPath = resolveNativeCli(backendKey, shellEnv);
++    return rawPath ? resolveRealCliPath(rawPath, realpath) : undefined;
++  }
+   if (backendKey === "opencode") {
+     const configuredEnvPath = normalizeCliPathForPlatform?.(env?.OPENCODE_BIN);
+     const rawPath = configuredEnvPath || resolveCliFromPath(backendKey, shellEnv) || undefined;
+@@ -481,6 +489,7 @@ function shouldReplaySdkHistory({
+   // process each turn).
+   if (
+     backendKey === "codebuddy"
++    || NATIVE_BACKENDS.has(backendKey)
+     || backendKey === "grok"
+     || codexRuntime === "app-server"
+   ) {
+@@ -491,6 +500,25 @@ function shouldReplaySdkHistory({
+ 
+ function registerSdkStreamHandlers(ctx) {
+   with (ctx) {
++    ipcMain.handle("netcatty:ai:native-agent:check", async (event, options) => {
++      if (!validateSenderOrSettings(event)) return { ok: false, error: "Unauthorized IPC sender" };
++      if (!NATIVE_BACKENDS.has(options?.engine)) return { ok: false, error: "Unknown native agent" };
++      const env = { ...buildSdkAgentEnv({ shellEnv: await getShellEnv(), requestedAgentEnv: options.env }), NETCATTY_NATIVE_LOCAL_TOOLS: "disabled" };
++      try {
++        const directory = options.cwd || require('node:os').homedir();
++        if (!(await require('node:fs/promises').stat(directory)).isDirectory()) throw new Error('Working directory is not a directory');
++        return { ok: true, ...await getDriver(options.engine).checkConnection({
++          chatSessionId: `native-check-${require('node:crypto').randomUUID()}`,
++          binPath: options.command || resolveNativeCli(options.engine, env), cwd: directory,
++          model: options.model || undefined, env, toolIntegrationMode: 'mcp',
++          injectedMcpServers: [], permissionMode: 'observer', getTempDir: () => tempDirBridge.getTempDir(),
++        }, options.testModel) };
++      } catch (error) {
++        let message = error.message || String(error);
++        for (const [key, value] of Object.entries(env)) if (/KEY|TOKEN|SECRET|PASSWORD/i.test(key) && value?.length > 3) message = message.split(value).join('[redacted]');
++        return { ok: false, error: message };
++      }
++    });
+     // chatSessionId -> { sessionId } for resume; controller per requestId.
+     const sdkActiveStreams = new Map(); // requestId -> AbortController
+     const sdkRequestSessions = new Map(); // requestId -> chatSessionId
+@@ -542,7 +570,7 @@ function registerSdkStreamHandlers(ctx) {
+         const emitter = createStreamEmitter({ safeSend, sender: event.sender, requestId });
+         try {
+           const shellEnv = await getShellEnv();
+-          const effectiveMode = normalizeToolIntegrationMode(toolIntegrationMode);
++          const effectiveMode = NATIVE_BACKENDS.has(backendKey) ? "mcp" : normalizeToolIntegrationMode(toolIntegrationMode);
+           setToolIntegrationMode(effectiveMode);
+ 
+           // Push terminal session metadata + build injected MCP (mcp mode only).
+@@ -621,7 +649,7 @@ function registerSdkStreamHandlers(ctx) {
+           const grokRuntime = backendKey === "grok"
+             ? resolveGrokRuntimeToken(env, env?.NETCATTY_GROK_RUNTIME)
+             : "sdk";
+-          const sessionRuntime = backendKey === "grok" ? grokRuntime : codexRuntime;
++          const sessionRuntime = NATIVE_BACKENDS.has(backendKey) ? "native-c1" : backendKey === "grok" ? grokRuntime : codexRuntime;
+           sdkRequestRuntimes.set(requestId, {
+             backendKey,
+             codexRuntime,
+@@ -786,6 +814,7 @@ function registerSdkStreamHandlers(ctx) {
+             resumeThreadId: resumeSessionId,
+             attachments: stagedAttachments,
+             sender: event.sender,
++            emitNativeSession: (snapshot) => safeSend(event.sender, "netcatty:ai:native-session:event", snapshot),
+             // Approval channel for codebuddy canUseTool permission handler:
+             // when the CLI hits a security restriction, route the decision
+             // through the renderer approval UI instead of throwing an error.
+@@ -1014,6 +1043,7 @@ function registerSdkStreamHandlers(ctx) {
+       mcpServerBridge.cancelWorkerBackgroundJobsForSession?.(effectiveChatSessionId);
+       mcpServerBridge.clearPendingApprovals(effectiveChatSessionId);
+       void mcpServerBridge.cancelSftpOpsForSession?.(effectiveChatSessionId);
++      await nativeSessionManager.closeForChat(effectiveChatSessionId);
+       await codexAppServerRuntime.cancelTurn(requestId);
+       const controller = sdkActiveStreams.get(requestId);
+       if (controller) {
+@@ -1023,6 +1053,30 @@ function registerSdkStreamHandlers(ctx) {
+       return { ok: false, error: "Stream not found" };
+     });
+ 
++    ipcMain.handle("netcatty:ai:native-session:control", async (event, payload) => {
++      if (!validateSender(event)) return { ok: false, error: "Unauthorized IPC sender" };
++      const session = nativeSessionManager.get(payload?.chatSessionId, event.sender);
++      if (!session) return { ok: true, snapshot: null };
++      if (payload.action === "snapshot") return { ok: true, snapshot: session.snapshot() };
++      if (payload.instanceId !== session.instanceId) return { ok: false, error: "Native session changed" };
++      try {
++        if (payload.action === "respond") return { ok: session.respond(payload.id, payload.answer || {}) };
++        let data;
++        if (session.engine === "omp") {
++          if (payload.action === "task-read") data = await session.rpc.request("get_subagent_messages", { subagentId: payload.id });
++          else if (payload.action === "task-cancel") data = await session.rpc.request("cancel_subagent", { subagentId: payload.id });
++          else if (payload.action === "task-steer") data = await session.rpc.request("steer_subagent", { subagentId: payload.id, message: payload.message });
++          else throw new Error("Unsupported OMP action");
++        } else if (session.engine === "dsh") {
++          if (payload.action === "plan-on" || payload.action === "plan-off") data = await session.rpc.request("plan_mode", { active: payload.action === "plan-on" });
++          else if (payload.action === "task-read") data = await session.rpc.request("job_read", { jobId: payload.id });
++          else if (payload.action === "task-cancel") data = await session.rpc.request("job_kill", { jobId: payload.id });
++          else throw new Error("Unsupported DSH action");
++        } else throw new Error("Unsupported Pi action");
++        return { ok: true, data };
++      } catch (error) { return { ok: false, error: error.message }; }
++    });
++
+     ipcMain.handle("netcatty:ai:sdk-agent:cleanup", async (event, { chatSessionId }) => {
+       if (!validateSender(event)) return { ok: false, error: "Unauthorized IPC sender" };
+       mcpServerBridge.setChatSessionCancelled?.(chatSessionId, true);
+@@ -1042,6 +1096,7 @@ function registerSdkStreamHandlers(ctx) {
+         sdkRequestRuntimes.delete(requestId);
+       }
+       deleteSdkSessionKeysForChat(sdkSessionIds, chatSessionId);
++      await nativeSessionManager.closeForChat(chatSessionId);
+       codebuddySessionManager.closeForChat(chatSessionId);
+       await codexAppServerRuntime.cleanupChatSession(chatSessionId);
+       await mcpServerBridge.cleanupScopedMetadata(chatSessionId);
+@@ -1212,6 +1267,7 @@ function registerSdkStreamHandlers(ctx) {
+     ctx.sdkRequestRuntimes = sdkRequestRuntimes;
+     ctx.codexAppServerRuntime = codexAppServerRuntime;
+     ctx.codebuddySessionManager = codebuddySessionManager;
++    ctx.nativeSessionManager = nativeSessionManager;
+   }
+ }
+ 
+diff --git a/electron/main.cjs b/electron/main.cjs
+index 9656587..32280fb 100644
+--- a/electron/main.cjs
++++ b/electron/main.cjs
+@@ -689,7 +689,11 @@ async function createAndShowMainWindow() {
+   return mainWindowStartupPromise;
+ }
+ 
+-let sshDeepLinkEnabled = readSshDeepLinkEnabledPreference({ app });
++let sshDeepLinkEnabled = readSshDeepLinkEnabledPreference({
++  app,
++  // The separate C1 preview should not take over the installed app's URL handlers.
++  defaultWhenMissing: app.getName() !== "netcatty-c1",
++});
+ // PuTTY-style CLI args (-ssh user@host -P 22 -pw pass) are an explicit launch
+ // method for bastion/PAM callers (#3044). They must connect even when Netcatty
+ // is not the registered ssh:// protocol client (or that registration failed),
+@@ -1618,12 +1622,12 @@ if (!gotLock) {
+     }
+     getWindowManager().setIsQuitting(true);
+     quitGuardChannelBusy = true;
+-    void runPluginShutdown()
+-      .then(({ timedOut }) => {
++    void Promise.all([runPluginShutdown(), getAiBridge().shutdownNativeAgents()])
++      .then(([{ timedOut }]) => {
+         if (timedOut) console.warn("[Plugins] Shutdown deadline elapsed; continuing app quit");
+       })
+       .catch((error) => {
+-        console.warn("[Plugins] Shutdown failed; continuing app quit:", error);
++        console.warn("[Main] Runtime shutdown failed; continuing app quit:", error);
+       })
+       .finally(() => {
+         quitGuardChannelBusy = false;
+diff --git a/electron/preload/api.cjs b/electron/preload/api.cjs
+index 94d7e1b..9d58e25 100644
+--- a/electron/preload/api.cjs
++++ b/electron/preload/api.cjs
+@@ -1879,6 +1879,13 @@ function createPreloadApi(ctx) {
+     return ipcRenderer.invoke("netcatty:ai:vault-agent:response", { requestId, result });
+   },
+   // SDK external agent streaming
++  aiNativeSessionControl: (payload) => ipcRenderer.invoke("netcatty:ai:native-session:control", payload),
++  aiNativeAgentCheck: (options) => ipcRenderer.invoke("netcatty:ai:native-agent:check", options),
++  onAiNativeSessionEvent: (chatSessionId, cb) => {
++    const listener = (_event, payload) => { if (payload.chatSessionId === chatSessionId) cb(payload); };
++    ipcRenderer.on("netcatty:ai:native-session:event", listener);
++    return () => ipcRenderer.removeListener("netcatty:ai:native-session:event", listener);
++  },
+   aiSdkAgentStream: async (requestId, chatSessionId, sdkBackend, prompt, cwd, providerId, model, existingSessionId, historyMessages, images, toolIntegrationMode, defaultTargetSession, userSkillsContext, agentEnv, agentCommand, codexRuntime, permissionMode, codebuddyOptions) => {
+     const advanced = codebuddyOptions && typeof codebuddyOptions === "object"
+       ? {
+diff --git a/electron/shared/sdkSessionIdentity.cjs b/electron/shared/sdkSessionIdentity.cjs
+index 2e9801e..5e5262d 100644
+--- a/electron/shared/sdkSessionIdentity.cjs
++++ b/electron/shared/sdkSessionIdentity.cjs
+@@ -13,6 +13,7 @@ function normalizeCursorCliMode(cliMode) {
+ /** Codex app-server | Grok acp/streaming-json | default sdk. */
+ function normalizeSdkRuntime(runtime) {
+   const raw = String(runtime || "").trim().toLowerCase();
++  if (raw === "native-c1") return "native-c1";
+   if (raw === "app-server") return "app-server";
+   if (raw === "acp") return "acp";
+   if (raw === "streaming-json" || raw === "cli" || raw === "headless") return "streaming-json";
+diff --git a/infrastructure/ai/harness/sdkSessionIdentity.ts b/infrastructure/ai/harness/sdkSessionIdentity.ts
+index 97ad71e..4ac2da5 100644
+--- a/infrastructure/ai/harness/sdkSessionIdentity.ts
++++ b/infrastructure/ai/harness/sdkSessionIdentity.ts
+@@ -3,7 +3,7 @@ export const SDK_SESSION_ID_PREFIX = 'netcatty-sdk-session:';
+ export type CursorAuthModeIdentity = 'api-key' | 'cli-login';
+ export type CursorCliModeIdentity = 'ask' | 'agent';
+ /** Codex dual runtime + Grok dual runtime. */
+-export type SdkRuntimeIdentity = 'sdk' | 'app-server' | 'acp' | 'streaming-json';
++export type SdkRuntimeIdentity = 'sdk' | 'app-server' | 'acp' | 'streaming-json' | 'native-c1';
+ 
+ export interface SdkSessionIdentityPayload {
+   v: 1;
+@@ -31,6 +31,7 @@ export function normalizeSdkRuntime(
+   runtime: string | undefined | null,
+ ): SdkRuntimeIdentity {
+   const raw = String(runtime || '').trim().toLowerCase();
++  if (raw === 'native-c1') return 'native-c1';
+   if (raw === 'app-server') return 'app-server';
+   if (raw === 'acp') return 'acp';
+   if (raw === 'streaming-json' || raw === 'cli' || raw === 'headless') return 'streaming-json';
+diff --git a/infrastructure/ai/managedAgents.ts b/infrastructure/ai/managedAgents.ts
+index 5471c24..f3c6cb1 100644
+--- a/infrastructure/ai/managedAgents.ts
++++ b/infrastructure/ai/managedAgents.ts
+@@ -3,9 +3,12 @@ import { getCommandBasename, isPathLikeCommand } from './shared/pathLikeCommand'
+ 
+ export { isPathLikeCommand, getCommandBasename };
+ 
+-export type ManagedAgentKey = 'codex' | 'claude' | 'copilot' | 'cursor' | 'codebuddy' | 'opencode' | 'grok';
++export type ManagedAgentKey = 'codex' | 'claude' | 'copilot' | 'cursor' | 'codebuddy' | 'opencode' | 'grok' | 'omp' | 'pi' | 'dsh';
+ 
+ const MANAGED_AGENT_META: Record<ManagedAgentKey, { commandNames: string[]; sdkBackend: string }> = {
++  omp: { commandNames: ['omp'], sdkBackend: 'omp' },
++  pi: { commandNames: ['pi'], sdkBackend: 'pi' },
++  dsh: { commandNames: ['dsh'], sdkBackend: 'dsh' },
+   codex: { commandNames: ['codex'], sdkBackend: 'codex' },
+   claude: { commandNames: ['claude'], sdkBackend: 'claude' },
+   copilot: { commandNames: ['copilot'], sdkBackend: 'copilot' },
+@@ -29,7 +32,8 @@ export function isSettingsManagedDiscoveredAgent(
+     || agent.command === 'cursor'
+     || agent.command === 'codebuddy'
+     || agent.command === 'opencode'
+-    || agent.command === 'grok';
++    || agent.command === 'grok'
++    || agent.command === 'omp' || agent.command === 'pi' || agent.command === 'dsh';
+ }
+ 
+ export function matchesManagedAgentConfig(
+diff --git a/infrastructure/ai/nativeAgents.ts b/infrastructure/ai/nativeAgents.ts
+new file mode 100644
+index 0000000..7d3e6a6
+--- /dev/null
++++ b/infrastructure/ai/nativeAgents.ts
+@@ -0,0 +1,38 @@
++export const NATIVE_AGENTS = {
++  omp: { name: 'Oh My Pi', version: '18.5.1' },
++  pi: { name: 'Pi', version: '1.0.3' },
++  dsh: { name: 'DeepSeek Harness', version: '0.2.0-rc.2' },
++} as const;
++export type NativeEngine = keyof typeof NATIVE_AGENTS;
++export interface NativeQuestion {
++  id: string; question: string; detail?: string; header?: string;
++  options?: Array<{ label: string; description?: string }>;
++  multi?: boolean; multiSelect?: boolean; intent?: { kind: string; approve?: string };
++}
++export interface NativeInteraction {
++  id: string; method: string; title?: string; message?: string; prefill?: string;
++  options?: string[]; questions?: NativeQuestion[];
++}
++export interface NativeSessionSnapshot {
++  chatSessionId: string; instanceId: string; seq: number; engine: NativeEngine; version: string; status: string;
++  plan?: { active: boolean; pending?: boolean };
++  interactions: NativeInteraction[];
++  tasks: Array<{ id: string; kind: string; name?: string; title?: string; status?: string; progress?: unknown }>;
++  widgets: Array<{ id: string; text: string }>;
++}
++export interface NativeControl {
++  chatSessionId: string; instanceId?: string; action: string; id?: string; message?: string; answer?: Record<string, unknown>;
++}
++export interface NativeControlResult { ok: boolean; error?: string; snapshot?: NativeSessionSnapshot | null; data?: unknown }
++
++/** Readable output from the pinned OMP transcript and DSH job APIs. */
++export function nativeTaskOutput(data: unknown): string {
++  if (!data || typeof data !== 'object') return String(data ?? '');
++  const value = data as { chunks?: Array<{ text: string }>; messages?: Array<{ role?: string; content?: string | Array<{ text?: string }> }> };
++  if (value.chunks) return value.chunks.map((chunk) => chunk.text).join('');
++  if (value.messages) return value.messages.map((message) => {
++    const content = typeof message.content === 'string' ? message.content : message.content?.map((part) => part.text || '').join('\n');
++    return `${message.role || ''}\n${content || ''}`.trim();
++  }).join('\n\n');
++  return JSON.stringify(data, null, 2);
++}
+diff --git a/infrastructure/ai/sdkAgentAdapter.ts b/infrastructure/ai/sdkAgentAdapter.ts
+index a3a6e62..732cd80 100644
+--- a/infrastructure/ai/sdkAgentAdapter.ts
++++ b/infrastructure/ai/sdkAgentAdapter.ts
+@@ -136,6 +136,16 @@ async function buildAgentEnvWithStoredApiKey(
+   config: ExternalAgentConfig,
+ ): Promise<Record<string, string> | undefined> {
+   const env = { ...(config.env ?? {}) };
++  if (['omp', 'pi', 'dsh'].includes(sdkBackend)) {
++    for (const [name, value] of Object.entries(env)) env[name] = await decryptField(value);
++    env.NETCATTY_NATIVE_LOCAL_TOOLS = config.nativeOptions?.localTools || 'disabled';
++    env.NETCATTY_NATIVE_ARGS = JSON.stringify(config.args || []);
++    env.NETCATTY_DSH_PROFILE = config.nativeOptions?.profile || 'sdk';
++    env.NETCATTY_NATIVE_EXTENSIONS = JSON.stringify(config.nativeOptions?.extensions || []);
++    if (config.apiKey && config.nativeOptions?.apiKeyEnv) {
++      env[config.nativeOptions.apiKeyEnv] = await decryptField(config.apiKey);
++    }
++  }
+   if (sdkBackend === 'cursor') {
+     const authMode = config.cursorAuthMode === 'cli-login' ? 'cli-login' : 'api-key';
+     env.NETCATTY_CURSOR_AUTH_MODE = authMode;
+@@ -340,9 +350,9 @@ export async function runSdkAgentTurn(
+     chatSessionId,
+     sdkBackend,
+     prompt,
+-    undefined, // cwd
++    config.nativeOptions?.cwd || undefined,
+     providerId,
+-    model,
++    ['omp', 'pi', 'dsh'].includes(sdkBackend) ? config.nativeOptions?.model || undefined : model,
+     existingSessionId,
+     historyMessages,
+     images?.length ? images : undefined,
+diff --git a/infrastructure/ai/types.ts b/infrastructure/ai/types.ts
+index c77cc3b..e69348a 100644
+--- a/infrastructure/ai/types.ts
++++ b/infrastructure/ai/types.ts
+@@ -281,6 +281,7 @@ export interface ExternalAgentConfig {
+   available?: boolean;
+   /** SDK backend key for managed agents (claude|codex|copilot|cursor|codebuddy|opencode|grok). */
+   sdkBackend?: string;
++  nativeOptions?: { cwd?: string; model?: string; localTools?: 'disabled' | 'confirm'; extensions?: string[]; apiKeyEnv?: string; profile?: string };
+   /** Cursor only: mutually exclusive auth — API key vs local `cursor-agent` CLI login. */
+   cursorAuthMode?: CursorAuthMode;
+   /** Experimental Codex transport. Missing values keep the existing SDK behavior. */
+@@ -338,7 +339,7 @@ export interface DiscoveredAgent {
+   acpCommand?: string;
+   acpArgs?: string[];
+   /** SDK backend key (claude|codex|copilot|cursor|codebuddy|opencode|grok) — the routing value. */
+-  sdkBackend?: 'claude' | 'codex' | 'copilot' | 'cursor' | 'codebuddy' | 'opencode' | 'grok';
++  sdkBackend?: 'claude' | 'codex' | 'copilot' | 'cursor' | 'codebuddy' | 'opencode' | 'grok' | 'omp' | 'pi' | 'dsh';
+   /** Absolute resolved CLI path (preferred over `path`). */
+   binPath?: string;
+   installed?: boolean;
+diff --git a/package-lock.json b/package-lock.json
+index c268b42..a2cc0a5 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "netcatty",
+-  "version": "0.0.0",
++  "version": "1.1.83",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "netcatty",
+-      "version": "0.0.0",
++      "version": "1.1.83",
+       "hasInstallScript": true,
+       "license": "GPL-3.0-or-later",
+       "workspaces": [
+diff --git a/package.json b/package.json
+index 72adafb..a508d16 100644
+--- a/package.json
++++ b/package.json
+@@ -3,7 +3,7 @@
+   "description": "Netcatty is a modern SSH manager and terminal app with host grouping, SFTP, keychain, port forwarding, and a rich UI.",
+   "homepage": "https://github.com/binaricat/Netcatty",
+   "private": true,
+-  "version": "0.0.0",
++  "version": "1.1.83",
+   "type": "module",
+   "workspaces": [
+     "packages/*",
+@@ -183,5 +183,6 @@
+     "axios": "1.13.5",
+     "node-abi": "4.31.0",
+     "@electron/asar": "4.2.0"
+-  }
++  },
++  "netcattyPatch": "C1-1183-20261007"
+ }
+diff --git a/packages/netcatty-dsh-bridge/bridge.mjs b/packages/netcatty-dsh-bridge/bridge.mjs
+new file mode 100644
+index 0000000..dad7c54
+--- /dev/null
++++ b/packages/netcatty-dsh-bridge/bridge.mjs
+@@ -0,0 +1,179 @@
++import process from 'node:process';
++import { setImmediate } from 'node:timers';
++// DSH 0.2.0-rc.2 profile plugin. The CLI owns boot, persistence and agent loop.
++import { createRequire } from 'node:module';
++import { realpathSync } from 'node:fs';
++import { pathToFileURL } from 'node:url';
++import { createInterface } from 'node:readline';
++import { randomUUID } from 'node:crypto';
++
++export const name = 'netcatty-native-bridge';
++export const inject = ['agents', 'tools', 'jobs', 'approval', 'userQuestions', 'planMode', 'agentDefaultModel'];
++
++export async function apply(ctx) {
++  const requireEngine = createRequire(realpathSync(process.env.NETCATTY_DSH_ENTRY));
++  const { createUserMessage } = await import(pathToFileURL(requireEngine.resolve('@deepseek-ai/dsh-llm')));
++  const { UserQuestionError } = await import(pathToFileURL(requireEngine.resolve('@deepseek-ai/dsh-user-questions')));
++  const send = (frame) => process.stdout.write(`${JSON.stringify(frame)}\n`);
++  const pending = new Map();
++  let handle;
++  let stopping = false;
++  let settling;
++  let activeTurnId;
++  const continuedQuestions = new Set();
++  const publishContinuedQuestions = () => {
++    if (!handle || stopping) return;
++    const projection = ctx.get('sessionProjections')?.stateOf(handle.agent.session, 'userQuestions');
++    for (const question of projection?.questions.active || []) {
++      if (question.state !== 'continued' || continuedQuestions.has(question.callId)) continue;
++      continuedQuestions.add(question.callId);
++      send({ type: 'interaction', id: `continued:${question.callId}`, kind: 'questions', questions: question.questions });
++    }
++  };
++  const owned = (agent) => agent && (agent === handle?.agent || ctx.agents.list().includes(agent));
++  const ask = (payload, signal) => new Promise((resolve) => {
++    const id = randomUUID();
++    const finish = (value) => {
++      if (!pending.delete(id)) return;
++      signal?.removeEventListener('abort', cancel);
++      send({ type: 'interaction-cleared', id });
++      resolve(value);
++    };
++    const cancel = () => finish({ cancelled: true });
++    pending.set(id, finish);
++    signal?.addEventListener('abort', cancel, { once: true });
++    send({ type: 'interaction', id, ...payload });
++    if (signal?.aborted) cancel();
++  });
++
++  ctx.on('approval/request', async (request) => {
++    const answer = await ask({ kind: 'approval', toolName: request.toolName, reason: request.reason }, request.signal);
++    return answer.cancelled ? 'cancelled' : answer.approved ? 'allowed-once' : 'rejected';
++  });
++  ctx.on('user-questions/request', async (request) => {
++    const answer = await ask({ kind: 'questions', questions: request.questions }, request.signal);
++    if (request.signal?.aborted) throw request.signal.reason;
++    if (answer.cancelled) throw new UserQuestionError('Question dismissed', 'ASK_CANCELLED');
++    return { answers: answer.answers || [] };
++  });
++  // Remote MCP always uses Netcatty's own policy. Local approval is independent.
++  ctx.on('tools/pre-execute', async (exec, next) => {
++    if (exec.name.startsWith('mcp__netcatty__')) return next();
++    const interactionTools = ['ask_user_question', 'exit_plan_mode', 'todo_write', 'job_list', 'job_output', 'job_kill'];
++    if (interactionTools.includes(exec.name)) return next();
++    if (process.env.NETCATTY_NATIVE_LOCAL_TOOLS !== 'confirm') {
++      return { kind: 'deny', reason: 'Local workspace tools are disabled in Netcatty settings. Use Netcatty MCP for connected terminals.' };
++    }
++    if (process.env.NETCATTY_NATIVE_PERMISSION === 'observer') return { kind: 'deny', reason: 'Observer mode blocks local tools.' };
++    const answer = await ask({ kind: 'approval', toolName: exec.name, args: exec.arguments }, exec.signal);
++    if (answer.cancelled) return { kind: 'cancel' };
++    return answer.approved ? next() : { kind: 'deny', reason: 'Local tool denied by user.' };
++  });
++  ctx.on('agent/assistant-stream', ({ agent, frame }) => {
++    if (agent === handle?.agent) send({ type: 'assistant-stream', frame });
++  });
++  ctx.on('session/event', (session, event) => {
++    if (session.id === handle?.agent.session.id) {
++      send({ type: 'session-event', event });
++      // PlanMode clears its pending intent after appending this event.
++      if (event.type === 'plan/mode') void Promise.resolve().then(() => send({ type: 'plan-state', plan: ctx.planMode.get(handle.agent) }));
++      void Promise.resolve().then(publishContinuedQuestions);
++    }
++  });
++  ctx.on('agent/status', ({ agent, status }) => {
++    if (owned(agent)) send({ type: 'agent-status', id: String(agent.id), primary: agent === handle?.agent, status });
++  });
++  ctx.effect(() => ctx.jobs.attachController('netcatty'), 'netcatty.jobs');
++  ctx.effect(() => ctx.jobs.events.subscribe({ owners: 'all' }, (event) => send({ type: 'job-event', event })), 'netcatty.job-events');
++
++  const stop = async () => {
++    stopping = true;
++    for (const finish of [...pending.values()]) finish({ cancelled: true });
++    for (const agent of ctx.agents.list()) {
++      agent.cancel({ kind: 'user' }); // Intentionally clears inbox (no keepInbox).
++      for (const job of ctx.jobs.list(agent.session.id)) ctx.jobs.kill(job.id, agent.session.id, 'Netcatty stop');
++    }
++    await Promise.all(ctx.agents.list().map((agent) => agent.whenIdle()));
++  };
++  const waitUntilSettled = async () => {
++    // whenIdle covers queues; Jobs are a separate service and can wake agents.
++    for (;;) {
++      await Promise.all(ctx.agents.list().map((agent) => agent.whenIdle()));
++      const liveJobs = ctx.agents.list().flatMap((agent) => ctx.jobs.list(agent.session.id))
++        .filter((job) => job.status === 'running' || job.status === 'stopping');
++      if (!liveJobs.length) break;
++      await new Promise((resolve) => {
++        const off = ctx.jobs.events.subscribe({ owners: 'all' }, (event) => {
++          if (event.type === 'settled') { off(); resolve(); }
++        });
++      });
++    }
++    send({ type: 'turn-settled', turnId: activeTurnId, cancelled: stopping });
++    activeTurnId = undefined;
++  };
++  const settle = () => {
++    settling ||= waitUntilSettled().catch((error) => send({ type: 'fatal', error: error.message })).finally(() => { settling = undefined; });
++    return settling;
++  };
++  const dispatch = async (command) => {
++    switch (command.type) {
++      case 'initialize': {
++        await ctx.get('loader')?.await();
++        const options = { ...ctx.agentDefaultModel.currentSelection(), ...(command.provider ? { provider: command.provider } : {}), ...(command.model ? { model: command.model } : {}) };
++        handle = command.resumeSessionId
++          ? await ctx.agents.resume({ resumeSessionId: command.resumeSessionId, agentOptions: options })
++          : await ctx.agents.create({ sessionId: `netcatty-${randomUUID()}`, meta: { cwd: command.cwd }, agentOptions: options });
++        publishContinuedQuestions();
++        return { sessionId: String(handle.agent.session.id), version: process.env.NETCATTY_DSH_VERSION, bridgeVersion: 1 };
++      }
++      case 'prompt': {
++        stopping = false;
++        activeTurnId = command.turnId;
++        const message = createUserMessage({ content: [{ type: 'text', text: command.message }], source: { kind: 'user' } });
++        handle.agent.followup(message);
++        void settle();
++        return { messageId: message.id };
++      }
++      case 'abort': await stop(); return {};
++      case 'snapshot': return { jobs: ctx.jobs.list(handle.agent.session.id), status: handle.agent.status, plan: ctx.planMode.get(handle.agent) };
++      case 'plan_mode': {
++        const result = ctx.planMode.set(handle.agent, command.active);
++        send({ type: 'plan-state', plan: ctx.planMode.get(handle.agent) });
++        return { result };
++      }
++      case 'job_kill': return { result: ctx.jobs.kill(command.jobId, handle.agent.session.id, 'Netcatty task stop') };
++      case 'job_read': return ctx.jobs.readAt(command.jobId, 0, handle.agent.session.id);
++      case 'shutdown':
++        await stop();
++        await handle?.dispose();
++        setImmediate(() => { void ctx.root.fiber.dispose().then(() => process.exit(0)); });
++        return {};
++      default: throw new Error(`Unsupported Netcatty bridge command: ${command.type}`);
++    }
++  };
++  const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
++  input.on('line', (line) => {
++    let command;
++    try { command = JSON.parse(line); } catch (error) { send({ type: 'fatal', error: error.message }); return; }
++    if (command.type === 'interaction_response') {
++      if (command.id.startsWith('continued:')) {
++        const callId = command.id.slice('continued:'.length);
++        if (!command.cancelled && continuedQuestions.has(callId)) {
++          try {
++            ctx.userQuestions.answer(handle.agent, callId, { answers: command.answers || [] });
++            continuedQuestions.delete(callId);
++            void settle();
++          } catch (error) { send({ type: 'notice', message: error.message }); return; }
++        }
++        send({ type: 'interaction-cleared', id: command.id });
++      } else pending.get(command.id)?.(command);
++      return;
++    }
++    void dispatch(command).then(
++      (data) => send({ type: 'response', id: command.id, success: true, data }),
++      (error) => send({ type: 'response', id: command.id, success: false, error: error.message }),
++    );
++  });
++  ctx.effect(() => () => input.close(), 'netcatty.input');
++  send({ type: 'ready', version: process.env.NETCATTY_DSH_VERSION, bridgeVersion: 1 });
++}
+diff --git a/scripts/build-1183-patch.mjs b/scripts/build-1183-patch.mjs
+new file mode 100644
+index 0000000..41777ba
+--- /dev/null
++++ b/scripts/build-1183-patch.mjs
+@@ -0,0 +1,76 @@
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { createHash } from 'node:crypto';
++import * as asar from '@electron/asar';
++
++// Reuse the official Windows runtime and dependencies. Only compiled renderer,
++// listed integration files and the patch marker are changed in app.asar.
++const [officialDir, outputDir] = process.argv.slice(2).map((value) => path.resolve(value));
++if (!officialDir || !outputDir) throw new Error('Usage: node scripts/build-1183-patch.mjs OFFICIAL_WINDOWS_DIR OUTPUT_DIR');
++const root = process.cwd();
++const baseAsar = path.join(officialDir, 'resources/app.asar');
++const original = JSON.parse(asar.extractFile(baseAsar, 'package.json'));
++if (original.name !== 'netcatty' || original.version !== '1.1.83') throw new Error('Official Netcatty 1.1.83 is required');
++const changes = JSON.parse(await fs.readFile('scripts/patch1183-files.json', 'utf8'));
++const staging = path.join(outputDir, 'staging');
++await fs.rm(staging, { recursive: true, force: true });
++await fs.mkdir(staging, { recursive: true });
++asar.extractAll(baseAsar, staging);
++await fs.rm(path.join(staging, 'dist'), { recursive: true, force: true });
++await fs.cp(path.join(root, 'dist'), path.join(staging, 'dist'), { recursive: true });
++for (const file of changes) {
++  await fs.mkdir(path.dirname(path.join(staging, file)), { recursive: true });
++  await fs.copyFile(path.join(root, file), path.join(staging, file));
++}
++original.netcattyPatch = 'C1-1183-20261007';
++await fs.writeFile(path.join(staging, 'package.json'), JSON.stringify(original, null, 2) + '\n');
++const unpacked = [];
++function visit(node, prefix = '', inherited = false) {
++  if (node.files) for (const [name, child] of Object.entries(node.files)) visit(child, prefix ? `${prefix}/${name}` : name, inherited || node.unpacked);
++  else if (inherited || node.unpacked) unpacked.push(prefix);
++}
++const header = asar.getRawHeader(baseAsar).header;
++visit(header);
++const unpackPatterns = [];
++function counts(node, inherited = false) {
++  if (!node.files) return [1, inherited || node.unpacked ? 1 : 0];
++  return Object.values(node.files).map((child) => counts(child, inherited || node.unpacked)).reduce((a, b) => [a[0] + b[0], a[1] + b[1]], [0, 0]);
++}
++function group(node, prefix = '', inherited = false) {
++  const [total, selected] = counts(node, inherited);
++  if (!selected) return;
++  if (prefix && total === selected) { unpackPatterns.push(node.files ? `${prefix}/**/*` : prefix); return; }
++  for (const [name, child] of Object.entries(node.files)) group(child, prefix ? `${prefix}/${name}` : name, inherited || node.unpacked);
++}
++group(header);
++// Globstars omit dotfiles; keep the official unpacked layout for these too.
++unpackPatterns.push(...unpacked.filter((file) => file.split('/').some((part) => part.startsWith('.'))));
++unpacked.push('electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs', 'packages/netcatty-dsh-bridge/bridge.mjs');
++unpackPatterns.push(...unpacked.slice(-2));
++const targetAsar = path.join(outputDir, 'payload/resources/app.asar');
++await fs.mkdir(path.dirname(targetAsar), { recursive: true });
++await asar.createPackageWithOptions(staging, targetAsar, { unpack: `{${unpackPatterns.map((pattern) => `${staging}/${pattern}`).join(',')}}` });
++const hash = async (file) => createHash('sha256').update(await fs.readFile(file)).digest('hex');
++const files = [];
++for (const file of unpacked) {
++  const target = `${targetAsar}.unpacked/${file}`;
++  const previous = `${baseAsar}.unpacked/${file}`;
++  const same = await hash(previous).then(async (value) => value === await hash(target)).catch(() => false);
++  if (same) await fs.rm(target);
++  else {
++    const existed = await fs.stat(previous).catch(() => null);
++    if (existed && !changes.includes(file)) throw new Error(`Unexpected dependency change: ${file}`);
++    files.push({ path: `resources/app.asar.unpacked/${file}`, sha256: await hash(target), originalSha256: existed ? await hash(previous) : null });
++  }
++}
++files.push({ path: 'resources/app.asar', sha256: await hash(targetAsar), originalSha256: await hash(baseAsar) });
++const manifest = {
++  patch: 'C1-1183-20261007', version: '1.1.83', platform: 'win32-x64',
++  baseCommit: 'd7a0c8ed8d238dcf1c82d786da53037a1f1496b1',
++  baseRelease: 'https://github.com/binaricat/Netcatty/releases/tag/v1.1.83',
++  executableSha256: await hash(path.join(officialDir, 'Netcatty.exe')),
++  engines: { omp: '18.5.1', pi: '1.0.3', dsh: '0.2.0-rc.2' }, files,
++};
++await fs.writeFile(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
++await fs.rm(staging, { recursive: true, force: true });
++console.log(JSON.stringify({ patch: manifest.patch, modifiedFiles: files.length, originalUnpackedFilesReused: unpacked.length - files.length + 1 }));
+diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
+new file mode 100644
+index 0000000..bd0646d
+--- /dev/null
++++ b/scripts/native-agents.electron.live.cjs
+@@ -0,0 +1,115 @@
++"use strict";
++// Run against an isolated Netcatty Electron profile with --remote-debugging-port=9222.
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const assert = require('node:assert/strict');
++const os = require('node:os');
++const { createNativeModelService } = require('./native-model-service.cjs');
++
++async function connect(pagePattern) {
++  const pages = await (await fetch(`http://127.0.0.1:${process.env.NATIVE_ELECTRON_PORT || 9222}/json/list`)).json();
++  const page = pages.find((entry) => entry.type === 'page' && !entry.url.startsWith('devtools:') && (pagePattern ? entry.url.includes(pagePattern) : !entry.url.includes('#/settings')));
++  assert(page, 'Netcatty Electron window must be running');
++  const ws = new WebSocket(page.webSocketDebuggerUrl);
++  await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }));
++  const pending = new Map(); let id = 0;
++  ws.addEventListener('message', ({ data }) => {
++    const message = JSON.parse(data); const p = pending.get(message.id);
++    if (!p) return;
++    pending.delete(message.id);
++    if (message.error || message.result.exceptionDetails) p.reject(new Error(JSON.stringify(message.error || message.result.exceptionDetails)));
++    else p.resolve(message.result);
++  });
++  const request = (method, params) => new Promise((resolve, reject) => {
++      pending.set(++id, { resolve, reject });
++      ws.send(JSON.stringify({ id, method, params }));
++    });
++  return { request, evaluate: async (expression) => (await request('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value, close: () => ws.close() };
++}
++async function main() {
++  const root = process.env.NETCATTY_NATIVE_RUNTIME;
++  assert(root, 'Set NETCATTY_NATIVE_RUNTIME');
++  const entries = JSON.parse(await fs.readFile(path.join(root, 'engines.json'), 'utf8'));
++  const service = await createNativeModelService();
++  const cdp = await connect();
++  const scratch = await fs.mkdtemp(path.join(root, 'electron-smoke-'));
++  try {
++    console.log(await cdp.evaluate(`(async () => {
++      const api = window.netcatty;
++      for (const sessionId of ['native-smoke-a', 'native-smoke-b']) await api.startLocalSession({ sessionId, shell: ${JSON.stringify(process.platform === 'win32' ? 'powershell.exe' : '/bin/bash')}, cwd: ${JSON.stringify(process.cwd())}, cols: 100, rows: 30 });
++      await api.aiMcpSetPermissionMode('confirm');
++      await api.aiMcpUpdateLiveSessions(['a','b'].map(x => ({ sessionId: 'native-smoke-' + x, hostname: 'local-' + x, label: 'Native smoke ' + x, protocol: 'local', shellType: 'bash', connected: true })));
++      return { title: document.title, localPty: true };
++    })()`));
++    for (const engine of (process.env.NATIVE_ENGINES || 'dsh,pi,omp').split(',')) {
++      const dir = path.join(scratch, engine); await fs.mkdir(dir);
++      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
++      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
++      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
++      const config = { engine, cwd: scratch, bin: entries[engine], model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env: { PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'disabled' } };
++      const result = await cdp.evaluate(`(async (config) => {
++        const api = window.netcatty; const chat = 'native-electron-' + config.engine;
++        const events = []; let allow = false; let approvals = 0;
++        let approvalSeen;
++        await api.aiMcpUpdateSessions([{sessionId:'native-smoke-a',hostname:'local-a',label:'Native smoke a',protocol:'local',shellType:'bash',connected:true}], chat);
++        const offApproval = api.onMcpApprovalRequest((request) => {
++          if (request.chatSessionId !== chat) return;
++          approvals++;
++          if (approvalSeen) approvalSeen(request);
++          else api.respondMcpApproval(request.approvalId, allow, 'once');
++        });
++        const offNative = api.onAiNativeSessionEvent(chat, (snapshot) => {
++          for (const item of snapshot.interactions) api.aiNativeSessionControl({chatSessionId:chat,instanceId:snapshot.instanceId,action:'respond',id:item.id,answer:item.questions?{answers:item.questions.map(q=>({id:q.id,selected:['Alpha']}))}:{value:'Extension reply'}});
++        });
++        let resume;
++        const run = async (prompt) => {
++          const requestId = crypto.randomUUID();
++          const off = api.onAiSdkAgentEvent(requestId, (event) => { events.push(event); if(event.type==='session-id') resume=event.sessionId; });
++          const offError = api.onAiSdkAgentError(requestId, (error) => events.push({type:'fatal',error}));
++          try { const result = await api.aiSdkAgentStream(requestId, chat, config.engine, prompt, config.cwd, undefined, config.model, resume, [], undefined, 'mcp', undefined, undefined, config.env, config.bin, undefined, 'confirm'); if (!result.ok) throw Error(JSON.stringify(result)); }
++          finally { off(); offError(); }
++        };
++        try {
++          await run('NC_ECHO first persisted Electron turn');
++          if(!resume) throw Error('Missing native resume identity');
++          await api.aiSdkAgentCleanup(chat);
++          await api.aiMcpUpdateSessions([{sessionId:'native-smoke-a',hostname:'local-a',label:'Native smoke a',protocol:'local',shellType:'bash',connected:true}], chat);
++          await run('NC_ECHO resumed Electron turn');
++          await run(config.engine==='dsh'?'NC_QUESTION ordinary question':'/netcatty-check');
++          await run('NC_REMOTE inspect the scoped connected terminals');
++          const environment = events.filter(event => event.type === 'tool-result');
++          if (!JSON.stringify(environment).includes('local-a') || JSON.stringify(environment).includes('local-b')) throw Error('MCP scope failed: ' + JSON.stringify(events));
++          await run('NC_EXEC denied terminal command');
++          const denied = events.filter(event => event.type === 'tool-result').at(-1);
++          if (JSON.stringify(denied).includes('NETCATTY_MCP_CLI_OK')) throw Error('Denied command executed');
++          allow = true;
++          await run('NC_EXEC approved terminal command');
++          const executed = events.filter(event => event.type === 'tool-result').at(-1);
++          if (!JSON.stringify(executed).includes('NETCATTY_MCP_CLI_OK')) throw Error('Terminal command did not execute: ' + JSON.stringify(executed));
++          if (approvals < 2) throw Error('Missing approvals');
++          const beforeStop = events.length;
++          const waiting = new Promise(resolve => { approvalSeen = resolve; });
++          const pendingTurn = run('NC_EXEC cancel while waiting for approval');
++          const pendingRequest = await waiting;
++          await api.aiSdkAgentCancel('', chat);
++          await api.respondMcpApproval(pendingRequest.approvalId, true, 'once');
++          await pendingTurn;
++          if (events.slice(beforeStop).some(event => event.type === 'tool-result' && JSON.stringify(event.output).includes('NETCATTY_MCP_CLI_OK'))) throw Error('Late approval executed after stop');
++          return { engine: config.engine, realCliResume: true, nativeInteraction: true, scopedMcp: true, approvalAndDenial: true, localPtyExecution: true, stopPendingApproval: true, events: events.length };
++        } finally { offNative(); offApproval(); await api.aiSdkAgentCleanup(chat); }
++      })(${JSON.stringify(config)})`);
++      console.log(JSON.stringify(result));
++      assert(JSON.stringify(service.requests.at(-1)).includes('first persisted Electron turn'), `${engine}: persisted history missing`);
++    }
++  } finally {
++    await fs.writeFile(path.join(scratch, 'model-requests.json'), JSON.stringify(service.requests, null, 2));
++    await cdp.evaluate(`Promise.all(['native-smoke-a','native-smoke-b'].map(id=>window.netcatty.closeSession(id)))`).catch(() => {});
++    cdp.close(); await service.close();
++  }
++  console.log(`Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. ${scratch}`);
++}
++if (require.main === module) {
++  const timer = setTimeout(() => { console.error('Electron native smoke timed out'); process.exit(1); }, 180000);
++  main().then(() => clearTimeout(timer), (error) => { clearTimeout(timer); console.error(error); process.exitCode = 1; });
++}
++module.exports = { connect };
+diff --git a/scripts/native-agents.live.cjs b/scripts/native-agents.live.cjs
+new file mode 100644
+index 0000000..b443469
+--- /dev/null
++++ b/scripts/native-agents.live.cjs
+@@ -0,0 +1,135 @@
++"use strict";
++// Opt in: NETCATTY_NATIVE_RUNTIME=/path/to/installed/resources node scripts/native-agents.live.cjs
++const assert = require('node:assert/strict');
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const os = require('node:os');
++const { createNativeModelService } = require('./native-model-service.cjs');
++const { nativeSessionManager } = require('../electron/bridges/aiBridge/sdk/nativeSessionManager.cjs');
++const { createStreamEmitter } = require('../electron/bridges/aiBridge/sdk/emit.cjs');
++
++async function main() {
++  const root = process.env.NETCATTY_NATIVE_RUNTIME;
++  assert(root, 'Set NETCATTY_NATIVE_RUNTIME to the directory containing bin/omp and runtime/node_modules/.bin/{pi,dsh}');
++  const scratch = await fs.mkdtemp(path.join(root, 'smoke-'));
++  const entries = JSON.parse(await fs.readFile(path.join(root, 'engines.json'), 'utf8'));
++  await fs.mkdir(path.join(scratch, 'tmp'));
++  let held;
++  const service = await createNativeModelService((body) => { if (JSON.stringify(body.messages.at(-1)).includes('NC_HOLD')) held?.(); });
++  try {
++    for (const engine of (process.env.NATIVE_ENGINES || 'dsh,pi,omp').split(',')) {
++      const driver = require(`../electron/bridges/aiBridge/sdk/${engine === 'dsh' ? 'dshNative' : engine + 'Rpc'}Driver.cjs`);
++      const dir = path.join(scratch, engine);
++      await fs.mkdir(dir);
++      const models = { providers: { 'netcatty-local': { baseUrl: `${service.url}/v1`, api: 'openai-completions', apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', name: 'Local controlled test', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
++      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
++      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
++      let approvals = 0;
++      let allow = true;
++      const events = [];
++      const snapshots = [];
++      const answered = new Set();
++      let autoAnswer = true;
++      let onSnapshot;
++      const base = {
++        chatSessionId: `smoke-${engine}`, requestId: 'smoke', cwd: scratch,
++        binPath: entries[engine],
++        model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'netcatty-local/netcatty-smoke',
++        env: { ...process.env, PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_PERMISSION_MODE: 'danger-full-access', DSH_TELEMETRY_DISABLED: '1', DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'confirm' },
++        toolIntegrationMode: 'mcp', injectedMcpServers: [], permissionMode: 'confirm',
++        getTempDir: () => path.join(scratch, 'tmp'),
++        requestApprovalFromRenderer: async () => { approvals++; return allow; },
++        clearPendingApprovals: () => {},
++        emitNativeSession: (snapshot) => {
++          snapshots.push(snapshot); onSnapshot?.(snapshot);
++          if (!autoAnswer) return;
++          for (const item of snapshot.interactions) {
++            if (answered.has(item.id)) continue;
++            answered.add(item.id);
++            const answer = item.questions ? { answers: item.questions.map((q) => ({ id: q.id, selected: [q.intent?.approve || 'Alpha'] })) } : { value: 'Extension reply' };
++            setImmediate(() => nativeSessionManager.get(base.chatSessionId)?.respond(item.id, answer));
++          }
++        },
++      };
++      const run = async (prompt, extra = {}) => {
++        const emitter = createStreamEmitter({ requestId: 'smoke', safeSend: (_sender, channel, payload) => events.push({ channel, ...payload }) });
++        return driver.runTurn({ ...base, prompt, emitter, ...extra });
++      };
++      const result = await run('NC_ECHO first native turn');
++      assert(events.some((entry) => entry.event?.textDelta?.includes('LOCAL_MODEL_OK')), `${engine}: missing streamed text`);
++      await nativeSessionManager.closeForChat(base.chatSessionId);
++      await run('NC_ECHO resumed second turn', { resumeSessionId: result.sessionId });
++      assert(JSON.stringify(service.requests.at(-1)).includes('first native turn'), `${engine}: history did not resume`);
++      await run('NC_TOOL approved local command');
++      await fs.writeFile(path.join(scratch, `${engine}-events.json`), JSON.stringify(events, null, 2));
++      assert(events.some((entry) => entry.event?.type === 'tool-result' && JSON.stringify(entry.event.output).includes('NATIVE_LOCAL_OK')), `${engine}: approved local command did not execute`);
++      assert(approvals > 0, `${engine}: local tool bypassed approval`);
++      assert(events.some((entry) => entry.event?.type === 'tool-result'), `${engine}: missing tool events`);
++      if (engine !== 'dsh') {
++        await run('/netcatty-check');
++        assert(snapshots.some((snapshot) => snapshot.widgets.some((widget) => widget.text.includes('Extension reply'))), `${engine}: extension answer was lost`);
++        if (engine === 'omp' && process.env.NATIVE_EXTENDED === '1') {
++          let cancelled = false;
++          onSnapshot = (snapshot) => {
++            const task = snapshot.tasks.find((task) => task.status === 'started');
++            if (!task || cancelled) return;
++            cancelled = true;
++            void nativeSessionManager.get(base.chatSessionId).rpc.request('cancel_subagent', { subagentId: task.id });
++          };
++          await run('NC_TASK start a subagent');
++          onSnapshot = undefined;
++          assert(cancelled, 'OMP subagent was not presented or cancelled');
++        }
++      } else {
++        await run('NC_QUESTION ordinary question');
++        assert(answered.size, 'DSH question was not presented');
++        if (process.env.NATIVE_EXTENDED === '1') {
++        await nativeSessionManager.get(base.chatSessionId).rpc.request('plan_mode', { active: true });
++        assert.equal(nativeSessionManager.get(base.chatSessionId).plan.active, true, 'DSH plan mode must be visible');
++        await run('NC_PLAN review the plan');
++        assert.equal(nativeSessionManager.get(base.chatSessionId).plan.active, false, 'DSH reviewed plan must leave plan mode');
++        assert.equal(nativeSessionManager.get(base.chatSessionId).plan.pending, undefined, 'Committed plan mode must clear the pending indicator');
++        assert(snapshots.some((snapshot) => snapshot.interactions.some((item) => item.questions?.some((q) => q.intent?.kind === 'plan-review'))), 'DSH plan review missing');
++        let killed = false;
++        onSnapshot = (snapshot) => {
++          const job = snapshot.tasks.find((task) => task.status === 'running');
++          if (!job || killed) return;
++          killed = true;
++          void nativeSessionManager.get(base.chatSessionId).rpc.request('job_kill', { jobId: job.id });
++        };
++        await run('NC_JOB start a background command');
++        onSnapshot = undefined;
++        assert(killed, 'DSH background task was not exposed');
++        assert(snapshots.some((snapshot) => snapshot.tasks.some((task) => task.status === 'killed')), 'DSH background task was not killed');
++        autoAnswer = false;
++        await run('NC_QUESTION deferred answer');
++        const session = nativeSessionManager.get(base.chatSessionId);
++        const pending = [...session.interactions.values()].find((item) => item.id.startsWith('continued:'));
++        assert(pending, 'DSH timed question disappeared instead of continuing');
++        const continued = new Promise((resolve) => { onSnapshot = (snapshot) => { if (snapshot.widgets.some((widget) => widget.id === 'continuation' && widget.text.includes('LOCAL_MODEL_OK'))) resolve(); }; });
++        session.respond(pending.id, { answers: [{ id: 'choice', selected: ['Alpha'] }] });
++        await continued;
++        onSnapshot = undefined; autoAnswer = true;
++        }
++      }
++      allow = false;
++      const approvalCount = approvals;
++      await run('NC_TOOL denied local command');
++      assert(approvals > approvalCount, `${engine}: denial was not requested`);
++      const abort = new AbortController();
++      const requestSeen = new Promise((resolve) => { held = resolve; });
++      const turn = run('NC_HOLD interrupt this request', { signal: abort.signal });
++      await requestSeen;
++      abort.abort();
++      await turn;
++      assert(!nativeSessionManager.get(base.chatSessionId), `${engine}: stopped process still registered`);
++      console.log(`${engine}: real CLI stream, tools/approval, denial, native resume, interactions${process.env.NATIVE_EXTENDED === '1' ? '/extended' : ''} and stop PASS`);
++    }
++  } finally {
++    await fs.writeFile(path.join(scratch, 'model-requests.json'), JSON.stringify(service.requests, null, 2));
++    await nativeSessionManager.closeAll(); await service.close();
++  }
++  console.log(`Local controlled model only; artifacts: ${scratch}`);
++}
++const deadline = setTimeout(() => { console.error('Native smoke timed out'); void nativeSessionManager.closeAll().finally(() => process.exit(1)); }, 180000);
++main().then(() => clearTimeout(deadline), (error) => { clearTimeout(deadline); console.error(error); process.exitCode = 1; });
+diff --git a/scripts/native-agents.ui.live.cjs b/scripts/native-agents.ui.live.cjs
+new file mode 100644
+index 0000000..1d40015
+--- /dev/null
++++ b/scripts/native-agents.ui.live.cjs
+@@ -0,0 +1,74 @@
++"use strict";
++// Operates only on a deliberately isolated Electron test profile.
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const os = require('node:os');
++const assert = require('node:assert/strict');
++const { connect } = require('./native-agents.electron.live.cjs');
++const { createNativeModelService } = require('./native-model-service.cjs');
++async function wait(cdp, expression, description, timeout = 60000) {
++  const end = Date.now() + timeout;
++  do { const value = await cdp.evaluate(`(()=>{const v=(${expression});return typeof v==='object'?Boolean(v):v;})()`); if (value) return value; await new Promise(r => setTimeout(r, 250)); } while (Date.now() < end);
++  throw new Error(`Timed out: ${description}; ${await cdp.evaluate('document.body.innerText')}`);
++}
++async function main() {
++  const root = process.env.NETCATTY_NATIVE_RUNTIME;
++  const entries = JSON.parse(await fs.readFile(path.join(root, 'engines.json'), 'utf8'));
++  const scratch = await fs.mkdtemp(path.join(root, 'ui-smoke-'));
++  const service = await createNativeModelService();
++  const main = await connect();
++  let settings;
++  try {
++    await main.evaluate('window.netcatty.openSettingsWindow()');
++    for (let i = 0; i < 40; i++) { try { settings = await connect('#/settings'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
++    assert(settings);
++    await wait(settings, `document.querySelector('[role="tab"]')`, 'settings mounted');
++    for (const tab of ['AI', 'Agents']) {
++      await settings.evaluate(`(()=>{const b=[...document.querySelectorAll('[role="tab"]')].find(e=>e.innerText===${JSON.stringify(tab)}); b.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));})()`);
++      await new Promise(r => setTimeout(r, 400));
++    }
++    await wait(settings, 'document.querySelectorAll("[data-native-settings]").length===3', 'three settings cards');
++    for (const engine of ['omp', 'pi', 'dsh']) {
++      const dir = path.join(scratch, engine); await fs.mkdir(dir);
++      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
++      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
++      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
++      const env = { PI_CONFIG_DIR: path.relative(os.homedir(), path.join(dir, 'omp-config')), PI_CODING_AGENT_DIR: dir, DSH_HOME: path.join(dir, 'dsh'), DSH_TELEMETRY_DISABLED: '1', DEEPSEEK_BASE_URL: service.url };
++      const config = { engine, command: entries[engine], cwd: scratch, model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env };
++      await settings.evaluate(`(c=>{const card=document.querySelector('[data-native-settings="'+c.engine+'"]'); card.querySelector('details').open=true;
++        const set=(e,v)=>{Object.getOwnPropertyDescriptor(e.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set.call(e,v);e.dispatchEvent(new Event('input',{bubbles:true}));};
++        const fields=[...card.querySelectorAll('input')].filter(e=>e.type==='text'); set(fields[0],c.command);set(fields[1],c.cwd);set(fields[2],c.model);
++        set(card.querySelector('textarea'),JSON.stringify(c.env)); set(fields[c.engine==='dsh'?5:4],'DEEPSEEK_API_KEY'); set(card.querySelector('input[type="password"]'),'local-test-key');
++      })(${JSON.stringify(config)})`);
++      await settings.evaluate(`document.querySelector('[data-native-settings="${engine}"]').querySelectorAll('button')[1].click()`);
++      const result = await wait(settings, `(()=>{const c=document.querySelector('[data-native-settings="${engine}"]');return c.querySelector('[role="alert"],[role="status"]')?.innerText;})()`, `${engine} settings model connection`);
++      assert.match(result, /model replied successfully|模型.*回复/i);
++      console.log(JSON.stringify({ engine, actualSettingsModelCheck: result }));
++    }
++    const saved = await settings.evaluate(`JSON.parse(localStorage.getItem('netcatty_ai_external_agents_v1')).filter(a=>['omp','pi','dsh'].includes(a.sdkBackend)).map(a=>({engine:a.sdkBackend,version:a.cliVersion,keyPresent:!!a.apiKey,encryptedKey:a.apiKey?.startsWith('enc:v1:')}))`);
++    assert.equal(saved.length, 3); assert(saved.every(a => a.keyPresent));
++    if (process.platform === 'win32') assert(saved.every(a => a.encryptedKey), 'Windows keys must use existing DPAPI safeStorage');
++    console.log(JSON.stringify({ settingsSaved: saved }));
++    await main.evaluate(`(()=>{const b=document.querySelector('button[aria-label="Local shell"]');b?.click();})()`);
++    await wait(main, 'document.querySelector("button svg.lucide-sparkles")', 'terminal AI entry');
++    await main.evaluate(`document.querySelector('button svg.lucide-sparkles').closest('button').click()`);
++    await wait(main, `document.querySelector('textarea[placeholder*="Ask"]') || document.querySelector('textarea[placeholder*="Message"]')`, 'chat composer');
++    for (const [engine, name] of [['omp','Oh My Pi'],['pi','Pi'],['dsh','DeepSeek Harness']]) {
++      await main.evaluate(`(()=>{const panel=document.querySelector('[data-section="terminal-side-panel-content"]'); const b=[...panel.querySelectorAll('button')].find(x=>x.querySelector('svg.lucide-chevron-down')&&x.innerText);b.click();})()`);
++      await wait(main, `[...document.querySelectorAll('button')].some(b=>b.innerText.startsWith(${JSON.stringify(name)}+String.fromCharCode(10))&&b.offsetWidth)`, `${engine} agent menu`);
++      await main.evaluate(`(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.innerText.startsWith(${JSON.stringify(name)}+String.fromCharCode(10))&&b.offsetWidth);b.click();})()`);
++      await new Promise(r => setTimeout(r, 350));
++      const before = service.requests.length;
++      await main.evaluate(`(()=>{const e=[...document.querySelectorAll('textarea')].find(x=>x.offsetWidth&&!x.classList.contains('xterm-helper-textarea')); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'NC_ECHO ${engine} actual sidebar');e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
++      await main.evaluate(`(()=>{const e=[...document.querySelectorAll('textarea')].find(x=>x.value==='NC_ECHO ${engine} actual sidebar'); e.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));})()`);
++      await wait(main, `document.querySelector('[data-native-engine="${engine}"]')?.innerText.includes('Ready')&&document.body.innerText.includes('LOCAL_MODEL_OK')`, `${engine} actual sidebar response`);
++      assert(service.requests.length > before, `${engine}: no real model request from sidebar`);
++      console.log(JSON.stringify({ engine, agentSelectedInSidebar: true, realCliResponseInSidebar: true }));
++    }
++    const screenshot = await main.request('Page.captureScreenshot', { format: 'png' });
++    await fs.writeFile(path.join(scratch, 'sidebar.png'), Buffer.from(screenshot.data, 'base64'));
++    console.log(`Actual packaged settings + saved config + sidebar AgentRuntime; LOCAL controlled model only. ${scratch}`);
++  } finally { settings?.close(); main.close(); await service.close(); }
++}
++if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
++module.exports = { wait };
+diff --git a/scripts/native-model-service.cjs b/scripts/native-model-service.cjs
+new file mode 100644
+index 0000000..eb0eed9
+--- /dev/null
++++ b/scripts/native-model-service.cjs
+@@ -0,0 +1,62 @@
++"use strict";
++// A deterministic LOCAL test service, not a cloud model. Real CLIs call it over HTTP.
++const http = require('node:http');
++const { randomUUID } = require('node:crypto');
++
++async function createNativeModelService(onRequest = () => {}, port = 0) {
++  const requests = [];
++  const server = http.createServer(async (req, res) => {
++    if (req.method === 'GET') { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ data: [{ id: 'netcatty-smoke', object: 'model' }] })); return; }
++    let raw = '';
++    for await (const chunk of req) raw += chunk;
++    const body = JSON.parse(raw);
++    requests.push(body); onRequest(body);
++    const messages = body.messages || [];
++    const index = messages.findLastIndex((message) => message.role === 'user' && /NC_(ECHO|TOOL|HOLD|REMOTE|EXEC|QUESTION|PLAN|JOB|TASK)/.test(JSON.stringify(message.content)));
++    const content = JSON.stringify(messages[index]?.content || '');
++    // Anthropic adapters merge consecutive user messages after an interrupted
++    // turn. Act on the latest test instruction, not an earlier NC_HOLD block.
++    const marker = [...content.matchAll(/NC_(ECHO|TOOL|HOLD|REMOTE|EXEC|QUESTION|PLAN|JOB|TASK)/g)].at(-1);
++    const prompt = content.slice(marker?.index || 0);
++    if (prompt.includes('NC_HOLD')) { res.writeHead(200, { 'content-type': 'text/event-stream' }); res.write(': waiting for cancellation\n\n'); return; }
++    const usedTool = messages.slice(index + 1).some((message) => message.role === 'tool' || JSON.stringify(message.content).includes('tool_result'));
++    const tools = (body.tools || []).map((tool) => tool.function || tool);
++    const tool = !usedTool && prompt.includes('NC_QUESTION') ? tools.find((item) => item.name === 'ask_user_question')
++      : !usedTool && prompt.includes('NC_PLAN') ? tools.find((item) => item.name === 'exit_plan_mode')
++      : !usedTool && prompt.includes('NC_JOB') ? tools.find((item) => item.name === 'bash')
++      : !usedTool && prompt.includes('NC_TASK') ? tools.find((item) => item.name === 'task')
++      : !usedTool && prompt.includes('NC_EXEC')
++      ? tools.find((item) => /terminal_execute$/.test(item.name))
++      : !usedTool && prompt.includes('NC_REMOTE')
++      ? tools.find((item) => /get_environment$/.test(item.name))
++      : !usedTool && prompt.includes('NC_TOOL') ? tools.find((item) => item.name === 'bash') : null;
++    const args = prompt.includes('NC_QUESTION') ? { questions: [{ id: 'choice', question: 'Choose a test option', options: [{ label: 'Alpha' }, { label: 'Beta' }] }], timeout: prompt.includes('deferred') ? 1 : -1 }
++      : prompt.includes('NC_PLAN') ? { plan: '# Native integration plan\n\n1. Inspect the selected terminal.\n2. Report the result.' }
++      : prompt.includes('NC_JOB') ? { command: 'printf NATIVE_JOB_STARTED; sleep 30', run_in_background: true }
++      : prompt.includes('NC_TASK') ? { agent: 'task', task: 'NC_HOLD child task', solutionSpace: 'Only respond to this text; use no tools.', tools: [], model: body.model }
++      : prompt.includes('NC_EXEC') ? { sessionId: 'native-smoke-a', command: 'echo NETCATTY_MCP_CLI_OK' }
++      : prompt.includes('NC_REMOTE') ? {} : { command: 'printf NATIVE_LOCAL_OK' };
++    if (tool && (tool.input_schema?.required || tool.parameters?.required || []).includes('description')) args.description = 'Print a local integration marker';
++    const text = `LOCAL_MODEL_OK \u4e2d\u6587 ${usedTool ? 'tool returned' : 'echo'}`;
++    const id = randomUUID();
++    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
++    if (req.url.includes('/messages')) {
++      const send = (type, data) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
++      send('message_start', { message: { id, type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: null, usage: { input_tokens: 12, output_tokens: 0 } } });
++      send('content_block_start', { index: 0, content_block: tool ? { type: 'tool_use', id, name: tool.name, input: {} } : { type: 'text', text: '' } });
++      send('content_block_delta', { index: 0, delta: tool ? { type: 'input_json_delta', partial_json: JSON.stringify(args) } : { type: 'text_delta', text } });
++      send('content_block_stop', { index: 0 });
++      send('message_delta', { delta: { stop_reason: tool ? 'tool_use' : 'end_turn', stop_sequence: null }, usage: { output_tokens: 8 } });
++      send('message_stop', {});
++    } else {
++      const send = (delta, finish_reason = null) => res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created: 1, model: body.model, choices: [{ index: 0, delta, finish_reason }], usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 } })}\n\n`);
++      send(tool ? { role: 'assistant', tool_calls: [{ index: 0, id, type: 'function', function: { name: tool.name, arguments: JSON.stringify(args) } }] } : { role: 'assistant', content: text });
++      send({}, tool ? 'tool_calls' : 'stop');
++      res.write('data: [DONE]\n\n');
++    }
++    res.end();
++  });
++  await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
++  return { url: `http://127.0.0.1:${server.address().port}`, requests, close: () => { server.closeAllConnections(); return new Promise((resolve) => server.close(resolve)); } };
++}
++module.exports = { createNativeModelService };
+diff --git a/scripts/native-profile.live.cjs b/scripts/native-profile.live.cjs
+new file mode 100644
+index 0000000..e1bcb67
+--- /dev/null
++++ b/scripts/native-profile.live.cjs
+@@ -0,0 +1,36 @@
++"use strict";
++// Seed/verify only synthetic records in an isolated acceptance profile.
++const assert = require('node:assert/strict');
++const { connect } = require('./native-agents.electron.live.cjs');
++(async () => {
++  const cdp = await connect();
++  try {
++    if (process.argv[2] === 'seed') {
++      await cdp.evaluate(`(async()=>{
++        const encrypted=await window.netcatty.credentialsEncrypt('synthetic-acceptance-secret');
++        localStorage.setItem('netcatty_hosts_v1',JSON.stringify([{id:'c1-retained-host',label:'Retained host',hostname:'192.0.2.1',username:'acceptance',port:22,tags:[],os:'linux',password:encrypted}]));
++        localStorage.setItem('netcatty_keys_v1',JSON.stringify([{id:'c1-retained-key',label:'Retained key',type:'ED25519',privateKey:encrypted,source:'generated',category:'key',created:1}]));
++        localStorage.setItem('netcatty_ai_sessions_v1',JSON.stringify([{id:'c1-retained-chat',title:'Retained chat',agentId:'catty',scope:{type:'global'},messages:[],createdAt:1,updatedAt:1}]));
++        localStorage.setItem('netcatty_ai_external_agents_v1',JSON.stringify([{id:'retained-codex',name:'Existing Codex',sdkBackend:'codex',enabled:true,command:'existing-codex.cmd',apiKey:encrypted}]));
++        localStorage.setItem('netcatty_c1_acceptance_cipher',encrypted);
++        localStorage.setItem('netcatty_term_font_size_v1','15');
++        return true;
++      })()`);
++      console.log('Original 1.1.83: synthetic host/key/chat/Codex/settings seeded through existing profile and safeStorage.');
++    } else if (process.argv[2] === 'verify') {
++      const result = await cdp.evaluate(`(async()=>({
++        host:JSON.parse(localStorage.getItem('netcatty_hosts_v1')).some(x=>x.id==='c1-retained-host'),
++        key:JSON.parse(localStorage.getItem('netcatty_keys_v1')).some(x=>x.id==='c1-retained-key'),
++        chat:JSON.parse(localStorage.getItem('netcatty_ai_sessions_v1')).some(x=>x.id==='c1-retained-chat'),
++        codex:JSON.parse(localStorage.getItem('netcatty_ai_external_agents_v1')).some(x=>x.id==='retained-codex'),
++        setting:localStorage.getItem('netcatty_term_font_size_v1')==='15',
++        credential:(await window.netcatty.credentialsDecrypt(localStorage.getItem('netcatty_c1_acceptance_cipher')))==='synthetic-acceptance-secret',
++        dpapi:localStorage.getItem('netcatty_c1_acceptance_cipher').startsWith('enc:v1:')
++      }))()`);
++      assert(Object.values(result).every(Boolean), JSON.stringify(result));
++      console.log(JSON.stringify({ retainedOriginalProfile: result }));
++    } else if (process.argv[2] === 'quit') {
++      await cdp.evaluate(`(()=>{setTimeout(()=>window.netcatty.quitApp(),100);return true;})()`);
++    }
++  } finally { cdp.close(); }
++})().catch(error => { console.error(error); process.exitCode = 1; });
+diff --git a/scripts/patch1183-files.json b/scripts/patch1183-files.json
+new file mode 100644
+index 0000000..44a410a
+--- /dev/null
++++ b/scripts/patch1183-files.json
+@@ -0,0 +1,17 @@
++[
++  "electron/bridges/aiBridge.cjs",
++  "electron/bridges/aiBridge/agentDiscoveryHandlers.cjs",
++  "electron/bridges/aiBridge/sdk/dshNativeDriver.cjs",
++  "electron/bridges/aiBridge/sdk/index.cjs",
++  "electron/bridges/aiBridge/sdk/nativeCli.cjs",
++  "electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs",
++  "electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs",
++  "electron/bridges/aiBridge/sdk/nativeSessionManager.cjs",
++  "electron/bridges/aiBridge/sdk/ompRpcDriver.cjs",
++  "electron/bridges/aiBridge/sdk/piRpcDriver.cjs",
++  "electron/bridges/aiBridge/sdk/sdkStreamHandlers.cjs",
++  "electron/main.cjs",
++  "electron/preload/api.cjs",
++  "electron/shared/sdkSessionIdentity.cjs",
++  "packages/netcatty-dsh-bridge/bridge.mjs"
++]
+diff --git a/scripts/windows-1183-acceptance.ps1 b/scripts/windows-1183-acceptance.ps1
+new file mode 100644
+index 0000000..52a4d79
+--- /dev/null
++++ b/scripts/windows-1183-acceptance.ps1
+@@ -0,0 +1,63 @@
++param([string]$SourceDir, [string]$DeliveryDir)
++$ErrorActionPreference = 'Stop'
++$SourceDir = (Resolve-Path $SourceDir).Path
++$DeliveryDir = (Resolve-Path $DeliveryDir).Path
++$Root = (Get-Location).Path
++$env:NATIVE_ELECTRON_PORT = '9283'
++function Assert-Exit([string]$Message) { if ($LASTEXITCODE) { throw $Message } }
++function Run-Node([string]$Script, [string]$Argument = '') {
++    & node (Join-Path $SourceDir "scripts\$Script") $Argument
++    Assert-Exit $Script
++}
++function Start-Netcatty {
++    $script:App = Start-Process (Join-Path $Trial 'Netcatty.exe') -ArgumentList "--remote-debugging-port=9283 --user-data-dir=`"$Profile`" --disable-gpu" -PassThru -RedirectStandardOutput (Join-Path $Root "electron-$Phase.out.log") -RedirectStandardError (Join-Path $Root "electron-$Phase.err.log")
++    $Ready = $false
++    for ($i = 0; $i -lt 120; $i++) {
++        try {
++            $Pages = Invoke-RestMethod 'http://127.0.0.1:9283/json/list'
++            if (@($Pages | Where-Object { $_.type -eq 'page' -and $_.url -match 'index.html' -and $_.url -notmatch 'settings' }).Count) { $Ready = $true; break }
++        } catch { }
++        if ($App.HasExited) { throw "Netcatty exited at $Phase" }
++        Start-Sleep -Milliseconds 500
++    }
++    if (!$Ready) { throw "Netcatty renderer not ready at $Phase" }
++    Start-Sleep -Seconds 2
++}
++function Stop-Netcatty {
++    Run-Node 'native-profile.live.cjs' 'quit'
++    if (!$App.WaitForExit(30000)) { throw 'Netcatty did not quit normally' }
++    Start-Sleep -Seconds 1
++}
++Invoke-WebRequest 'https://github.com/binaricat/Netcatty/releases/download/v1.1.83/Netcatty-1.1.83-win-x64.zip' -OutFile official.zip
++Expand-Archive official.zip -DestinationPath 'Trial Install With Spaces'
++$Trial = Join-Path $Root 'Trial Install With Spaces'
++$Profile = Join-Path $Root 'Acceptance Existing Profile'
++Expand-Archive (Join-Path $DeliveryDir 'Netcatty-1.1.83-C1-Windows-x64-Patch.zip') -DestinationPath patch
++$Patch = Join-Path $Root 'patch\scripts\windows-1183-patch.ps1'
++$ExeHash = (Get-FileHash (Join-Path $Trial 'Netcatty.exe')).Hash
++$AsarHash = (Get-FileHash (Join-Path $Trial 'resources\app.asar')).Hash
++$Phase = 'original'
++try {
++    Start-Netcatty
++    Run-Node 'native-profile.live.cjs' 'seed'
++    Stop-Netcatty
++    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Patch -Action check -InstallDir $Trial; Assert-Exit 'Patch check'
++    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Patch -Action apply -InstallDir $Trial; Assert-Exit 'Patch apply'
++    if ((Get-FileHash (Join-Path $Trial 'Netcatty.exe')).Hash -ne $ExeHash) { throw 'Executable changed' }
++    $Phase = 'patched'
++    Start-Netcatty
++    Run-Node 'native-profile.live.cjs' 'verify'
++    Run-Node 'native-agents.ui.live.cjs'
++    Run-Node 'native-agents.electron.live.cjs'
++    Stop-Netcatty
++    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Patch -Action rollback -InstallDir $Trial; Assert-Exit 'Patch rollback'
++    if ((Get-FileHash (Join-Path $Trial 'resources\app.asar')).Hash -ne $AsarHash) { throw 'Rollback resources differ' }
++    if ((Get-FileHash (Join-Path $Trial 'Netcatty.exe')).Hash -ne $ExeHash) { throw 'Rollback executable differs' }
++    $Phase = 'rollback'
++    Start-Netcatty
++    Run-Node 'native-profile.live.cjs' 'verify'
++    Stop-Netcatty
++    Write-Output 'WINDOWS PASS: original entry; check/apply/backup/rollback; retained host/key/chat/Codex/settings/DPAPI; target CLI settings/sidebar/MCP/interaction/resume/approval/stop. LOCAL controlled model only.'
++} finally {
++    Get-Process Netcatty -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
++}
+diff --git a/scripts/windows-1183-patch.ps1 b/scripts/windows-1183-patch.ps1
+new file mode 100644
+index 0000000..1a55ede
+--- /dev/null
++++ b/scripts/windows-1183-patch.ps1
+@@ -0,0 +1,127 @@
++param(
++    [ValidateSet('menu', 'check', 'apply', 'rollback')][string]$Action = 'menu',
++    [string]$InstallDir
++)
++$ErrorActionPreference = 'Stop'
++$PatchRoot = $PSScriptRoot
++if (Test-Path (Join-Path $PatchRoot '..\manifest.json')) { $PatchRoot = Split-Path $PatchRoot }
++$Manifest = Get-Content (Join-Path $PatchRoot 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
++function Hash([string]$File) { (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash.ToLowerInvariant() }
++function Locate-Install {
++    $Candidates = @()
++    foreach ($RegistryRoot in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')) {
++        Get-ItemProperty "$RegistryRoot\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq 'Netcatty' } | ForEach-Object {
++            if ($_.InstallLocation) { $Candidates += $_.InstallLocation }
++            if ($_.UninstallString -match '^"([^"]+)"') { $Candidates += Split-Path $Matches[1] }
++        }
++    }
++    $Candidates += @((Join-Path $env:LOCALAPPDATA 'Programs\Netcatty'), (Join-Path $env:ProgramFiles 'Netcatty'))
++    $Found = @($Candidates | Where-Object { Test-Path (Join-Path $_ 'Netcatty.exe') } | Select-Object -Unique)
++    if ($Found.Count -eq 1) { return $Found[0] }
++    Add-Type -AssemblyName System.Windows.Forms
++    $Picker = New-Object System.Windows.Forms.FolderBrowserDialog
++    $Picker.Description = '请选择包含 Netcatty.exe 的安装目录'
++    if ($Found.Count) { $Picker.SelectedPath = $Found[0] }
++    if ($Picker.ShowDialog() -ne 'OK') { throw '已取消目录选择。' }
++    $Picker.SelectedPath
++}
++function Check-Install {
++    $Exe = Join-Path $InstallDir 'Netcatty.exe'
++    if (!(Test-Path $Exe)) { throw '所选目录中没有 Netcatty.exe。' }
++    $Version = (Get-Item -LiteralPath $Exe).VersionInfo.ProductVersion
++    if ($Version -notmatch '^1\.1\.83(?:\.0)?$') { throw "此补丁适用于 1.1.83；检测到 $Version。" }
++    $Stream = [IO.File]::OpenRead($Exe)
++    $Reader = New-Object IO.BinaryReader($Stream)
++    try { $Stream.Position = 60; $Offset = $Reader.ReadInt32(); $Stream.Position = $Offset + 4; if ($Reader.ReadUInt16() -ne 34404) { throw '需要 Windows x64 版本。' } }
++    finally { $Reader.Dispose(); $Stream.Dispose() }
++    $Core = $Manifest.files | Where-Object { $_.path -eq 'resources/app.asar' }
++    $Current = Hash (Join-Path $InstallDir $Core.path)
++    if ($Current -ne $Core.originalSha256 -and $Current -ne $Core.sha256) { throw '应用资源与官方 1.1.83 及本补丁均不匹配。没有修改任何文件。' }
++    foreach ($File in $Manifest.files) {
++        if ((Hash (Join-Path $PatchRoot ('payload\' + $File.path))) -ne $File.sha256) { throw "补丁文件校验失败：$($File.path)" }
++    }
++    Write-Host "目录：$InstallDir"
++    Write-Host "Netcatty $Version / Windows x64；资源检查通过。"
++    Write-Host '保持当前启动入口和用户数据目录；只修改清单中的应用资源。'
++    return $Current -eq $Core.sha256
++}
++function Require-Stopped {
++    $Running = @(Get-Process -Name Netcatty -ErrorAction SilentlyContinue)
++    if ($Running.Count) { throw '请先退出所有 Netcatty 窗口和托盘进程，再应用或回滚。' }
++}
++function Restore-Files($Receipt) {
++    foreach ($File in $Receipt.files) {
++        $Destination = Join-Path $InstallDir $File.path
++        if ($File.existed) {
++            $Saved = Join-Path $BackupDir $File.path
++            if ((Hash $Saved) -ne $File.sha256) { throw "备份校验失败：$($File.path)" }
++        }
++    }
++    foreach ($File in $Receipt.files) {
++        $Destination = Join-Path $InstallDir $File.path
++        if ($File.existed) { Copy-Item -LiteralPath (Join-Path $BackupDir $File.path) -Destination $Destination -Force }
++        elseif (Test-Path $Destination) { Remove-Item -LiteralPath $Destination -Force }
++    }
++}
++try {
++    if (!$InstallDir) { $InstallDir = Locate-Install }
++    $InstallDir = (Resolve-Path -LiteralPath $InstallDir).Path
++    $BackupDir = Join-Path $InstallDir '.netcatty-c1-1183-backup'
++    $ReceiptFile = Join-Path $BackupDir 'backup.json'
++    if ($Action -eq 'menu') {
++        Write-Host "Netcatty 1.1.83 C1 功能补丁`n目录：$InstallDir"
++        Write-Host '1 检查   2 应用   3 回滚   0 退出'
++        switch (Read-Host '请选择') { '1' { $Action = 'check' } '2' { $Action = 'apply' } '3' { $Action = 'rollback' } default { exit 0 } }
++    }
++    if ($Action -eq 'rollback') {
++        Require-Stopped
++        if (!(Test-Path $ReceiptFile)) { throw '此目录没有本补丁的备份。' }
++        $Receipt = Get-Content $ReceiptFile -Raw -Encoding UTF8 | ConvertFrom-Json
++        $Core = $Manifest.files | Where-Object { $_.path -eq 'resources/app.asar' }
++        $Current = Hash (Join-Path $InstallDir $Core.path)
++        if ($Current -ne $Core.sha256 -and $Current -ne $Core.originalSha256) { throw '程序已被其他更新修改；请保留当前程序后再处理备份。' }
++        Restore-Files $Receipt
++        Write-Host '已恢复官方 1.1.83 程序资源。当前主机、密钥、设置和聊天数据仍保留；备份也已保留。'
++    } else {
++        $AlreadyApplied = Check-Install
++        if ($Action -eq 'apply') {
++            Require-Stopped
++            if ($AlreadyApplied) { Write-Host '此补丁已经应用。'; exit 0 }
++            if (Test-Path $ReceiptFile) {
++                $Receipt = Get-Content $ReceiptFile -Raw -Encoding UTF8 | ConvertFrom-Json
++                foreach ($File in $Receipt.files) { if ($File.existed -and (Hash (Join-Path $BackupDir $File.path)) -ne $File.sha256) { throw '已有备份不完整。' } }
++            } else {
++                New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
++                $Entries = @()
++                foreach ($File in $Manifest.files) {
++                    $Original = Join-Path $InstallDir $File.path
++                    $Exists = Test-Path $Original
++                    $OriginalHash = $null
++                    if ($Exists) {
++                        $OriginalHash = Hash $Original
++                        $Saved = Join-Path $BackupDir $File.path
++                        New-Item -ItemType Directory -Path (Split-Path $Saved) -Force | Out-Null
++                        Copy-Item -LiteralPath $Original -Destination $Saved
++                    }
++                    $Entries += @{ path = $File.path; existed = $Exists; sha256 = $OriginalHash }
++                }
++                $Receipt = @{ patch = $Manifest.patch; files = $Entries }
++                $Receipt | ConvertTo-Json -Depth 8 | Set-Content $ReceiptFile -Encoding UTF8
++            }
++            try {
++                foreach ($File in $Manifest.files) {
++                    $Destination = Join-Path $InstallDir $File.path
++                    New-Item -ItemType Directory -Path (Split-Path $Destination) -Force | Out-Null
++                    Copy-Item -LiteralPath (Join-Path $PatchRoot ('payload\' + $File.path)) -Destination $Destination -Force
++                    if ((Hash $Destination) -ne $File.sha256) { throw "写入校验失败：$($File.path)" }
++                }
++            } catch { Restore-Files $Receipt; throw }
++            Write-Host '补丁已应用。通过原快捷方式启动 Netcatty，在 设置 → AI → Agents 配置三个已有 Agent。'
++            Write-Host "原程序资源备份：$BackupDir"
++        }
++    }
++} catch {
++    Write-Host $_.Exception.Message -ForegroundColor Red
++    if ($_.Exception -is [UnauthorizedAccessException]) { Write-Host '安装目录需要写权限。请右键补丁入口，以管理员身份运行。' }
++    exit 1
++}
+diff --git a/types/global/netcatty-bridge-ai.d.ts b/types/global/netcatty-bridge-ai.d.ts
+index 76a8017..6547cf9 100644
+--- a/types/global/netcatty-bridge-ai.d.ts
++++ b/types/global/netcatty-bridge-ai.d.ts
+@@ -1,7 +1,12 @@
++import type { NativeControl, NativeControlResult, NativeSessionSnapshot } from '../../infrastructure/ai/nativeAgents';
+ import type { CodebuddyAdvancedOptions } from '../../infrastructure/ai/types';
+ 
+ declare global {
+   interface NetcattyBridge {
++    aiNativeSessionControl?(payload: NativeControl): Promise<NativeControlResult>;
++    aiNativeAgentCheck?(options: { engine: string; command?: string; cwd?: string; model?: string; env?: Record<string, string>; testModel?: boolean }): Promise<{ ok: boolean; version?: string; protocol?: string; modelConnected?: boolean; error?: string }>;
++    onAiNativeSessionEvent?(chatSessionId: string, callback: (snapshot: NativeSessionSnapshot) => void): () => void;
++    aiResolveCli?(options: { command: string; customPath?: string; refreshShellEnv?: boolean }): Promise<{ path: string | null; version?: string; available?: boolean; error?: string }>;
+     // AI / external agents
+     aiSyncProviders?(providers: Array<{ id: string; providerId: string; apiKey?: string; baseURL?: string; enabled: boolean }>): Promise<{ ok: boolean }>;
+     aiChatStream?(requestId: string, url: string, headers?: Record<string, string>, body?: string, providerId?: string, idleTimeoutMs?: number): Promise<{ ok: boolean; statusCode?: number; statusText?: string; error?: string; aborted?: boolean }>;

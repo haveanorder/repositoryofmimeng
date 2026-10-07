@@ -1,0 +1,35 @@
+{
+  "patch": "C1-1183-20261007",
+  "version": "1.1.83",
+  "platform": "win32-x64",
+  "baseCommit": "d7a0c8ed8d238dcf1c82d786da53037a1f1496b1",
+  "baseRelease": "https://github.com/binaricat/Netcatty/releases/tag/v1.1.83",
+  "executableSha256": "d665e9ecbccf40b411c53d0607790c466f2639e6003b595628696ee249d73b8d",
+  "engines": {
+    "omp": "18.5.1",
+    "pi": "1.0.3",
+    "dsh": "0.2.0-rc.2"
+  },
+  "files": [
+    {
+      "path": "resources/app.asar.unpacked/electron/shared/sdkSessionIdentity.cjs",
+      "sha256": "696d16216cf71d9ec048c25185119eaa2260385aafccffca28d8dd3ed8b50013",
+      "originalSha256": "58710cc127efe4beac2be0edece6a8257999256b46db8512b75ef886fed5d36b"
+    },
+    {
+      "path": "resources/app.asar.unpacked/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs",
+      "sha256": "84a48ee699934333d43fe29be363fc6b89fb2061ec5fa5a5484fd6643527fcda",
+      "originalSha256": null
+    },
+    {
+      "path": "resources/app.asar.unpacked/packages/netcatty-dsh-bridge/bridge.mjs",
+      "sha256": "9c3f8b19f30463ae4d4be81ea2813e21631219e0d5e283906df5c95272d279a4",
+      "originalSha256": null
+    },
+    {
+      "path": "resources/app.asar",
+      "sha256": "b7f3c757bf97be8b78869cb65059a329ab9da43ae8bd60d084d295cb638110aa",
+      "originalSha256": "b30477606997ca3ad8a93c276c5c1a8df46bc33b70b3106d97e9d6caebc6914a"
+    }
+  ]
+}

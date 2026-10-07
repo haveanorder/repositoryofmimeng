@@ -1,0 +1,57 @@
+name: Netcatty 1183 resource patch verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: netcatty-1183-resource-patch-verification
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: deliveries/netcatty-c1-1183-20261007
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Restore the delivered source and actual existing CLI versions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Expand-Archive deliveries/netcatty-c1-1183-20261007/Netcatty-1.1.83-C1-Source.zip -DestinationPath source
+          New-Item -ItemType Directory -Force 'cli Existing Agent Entries/bin','cli Existing Agent Entries/runtime','cli Existing Agent Entries/.pi/agent/bin' | Out-Null
+          Invoke-WebRequest https://github.com/can1357/oh-my-pi/releases/download/v18.5.1/omp-windows-x64.exe -OutFile 'cli Existing Agent Entries/bin/omp.exe'
+          if ((Get-FileHash 'cli Existing Agent Entries/bin/omp.exe').Hash.ToLower() -ne 'c487c11dfdabc0d3d5317615779469eeff586383abb1c55ad57cc3ff07162e06') { throw 'OMP download hash' }
+          Invoke-WebRequest https://github.com/earendil-works/pi/releases/download/v1.0.3/pi-windows-x64.zip -OutFile pi.zip
+          if ((Get-FileHash pi.zip).Hash.ToLower() -ne '6cddc3d11210539faa7ba0188504813f2f3ae6d8f93a161d4145cc61a8bdd5de') { throw 'Pi download hash' }
+          Expand-Archive pi.zip -DestinationPath 'cli Existing Agent Entries/.pi/agent/bin'
+          $piExe = Get-ChildItem 'cli Existing Agent Entries/.pi/agent/bin' -Filter pi.exe -Recurse | Select-Object -First 1
+          if (!$piExe) { throw 'Pi executable missing' }
+          $piCmd = Join-Path $piExe.DirectoryName 'pi.cmd'
+          [IO.File]::WriteAllText($piCmd, "@echo off`r`n`"%~dp0pi.exe`" %*`r`n", [Text.Encoding]::ASCII)
+          npm install --prefix 'cli Existing Agent Entries/runtime' --ignore-scripts --no-audit --no-fund @earendil-works/pi-coding-agent@1.0.3 @deepseek-ai/dsh@0.2.0-rc.2
+          if ($LASTEXITCODE) { throw 'CLI dependencies' }
+          $entries = @{ omp=(Resolve-Path 'cli Existing Agent Entries/bin/omp.exe').Path; pi=$piCmd; dsh=(Resolve-Path 'cli Existing Agent Entries/runtime/node_modules/.bin/dsh.cmd').Path }
+          $entries | ConvertTo-Json | Set-Content 'cli Existing Agent Entries/engines.json' -Encoding utf8
+          foreach ($engine in 'omp','pi','dsh') { & $entries[$engine] --version; if ($LASTEXITCODE) { throw "$engine startup" } }
+      - name: Windows PowerShell 5 patch, original data, actual settings and MCP
+        shell: pwsh
+        env:
+          NETCATTY_NATIVE_RUNTIME: ${{ github.workspace }}/cli Existing Agent Entries
+          NATIVE_ENGINES: dsh,pi,omp
+        run: |
+          & ./source/Netcatty-1.1.83/scripts/windows-1183-acceptance.ps1 -SourceDir ./source/Netcatty-1.1.83 -DeliveryDir ./deliveries/netcatty-c1-1183-20261007 2>&1 | Tee-Object -FilePath windows-acceptance.log
+          if (!$?) { throw 'Windows acceptance failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: netcatty-1183-windows-evidence
+          path: |
+            windows-acceptance.log
+            electron-*.log
+            cli Existing Agent Entries/ui-smoke-*/sidebar.png
+            cli Existing Agent Entries/electron-smoke-*/model-requests.json
