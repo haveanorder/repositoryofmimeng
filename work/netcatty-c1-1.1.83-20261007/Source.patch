@@ -778,10 +778,10 @@ index f80085c..e99169a 100644
  
 diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 new file mode 100644
-index 0000000..df8b0fa
+index 0000000..120f8f9
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,77 @@
 +"use strict";
 +const path = require('node:path');
 +const fs = require('node:fs');
@@ -801,9 +801,10 @@ index 0000000..df8b0fa
 +      env: Object.fromEntries(server.env.map(({ name, value }) => [name, value])), failOnStartupError: true, toolCallTimeoutMs: 300000,
 +    } }] });
 +    const patchPath = await writeSessionFile(session, 'dsh.patch.json', JSON.stringify(patch));
-+    const args = ['--profile', 'netcatty-c1'];
++    const profile = 'netcatty-rpc-' + session.version.replace(/[^a-zA-Z0-9.-]/g, '-');
++    const args = ['--profile', profile];
 +    const dshHome = ctx.env.DSH_HOME || path.join(ctx.env.HOME || ctx.env.USERPROFILE || os.homedir(), '.dsh');
-+    if (!fs.existsSync(path.join(dshHome, 'profiles/netcatty-c1/package.json'))) args.push('--from-default-profile', 'sdk');
++    if (!fs.existsSync(path.join(dshHome, 'profiles', profile, 'package.json'))) args.push('--from-default-profile', 'sdk');
 +    args.push('--patch', patchPath);
 +    return { args, env: { ...ctx.env, NETCATTY_DSH_ENTRY: session.entry,
 +      NETCATTY_NATIVE_LOCAL_TOOLS: ctx.env.NETCATTY_NATIVE_LOCAL_TOOLS || 'disabled', NETCATTY_NATIVE_PERMISSION: ctx.permissionMode,
