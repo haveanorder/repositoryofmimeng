@@ -1731,7 +1731,7 @@ index 0000000..74098bf
 +  return JSON.stringify(data, null, 2);
 +}
 diff --git a/infrastructure/ai/sdkAgentAdapter.ts b/infrastructure/ai/sdkAgentAdapter.ts
-index a3a6e62..b4633a1 100644
+index a3a6e62..a54938f 100644
 --- a/infrastructure/ai/sdkAgentAdapter.ts
 +++ b/infrastructure/ai/sdkAgentAdapter.ts
 @@ -136,6 +136,14 @@ async function buildAgentEnvWithStoredApiKey(
@@ -1757,7 +1757,7 @@ index a3a6e62..b4633a1 100644
 +    config.nativeOptions?.cwd || undefined,
      providerId,
 -    model,
-+    config.nativeOptions?.model || model,
++    ['omp', 'pi', 'dsh'].includes(sdkBackend) ? config.nativeOptions?.model || undefined : model,
      existingSessionId,
      historyMessages,
      images?.length ? images : undefined,
