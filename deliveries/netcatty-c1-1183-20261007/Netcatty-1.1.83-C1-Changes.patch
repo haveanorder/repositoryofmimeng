@@ -2256,10 +2256,10 @@ index 0000000..41777ba
 +console.log(JSON.stringify({ patch: manifest.patch, modifiedFiles: files.length, originalUnpackedFilesReused: unpacked.length - files.length + 1 }));
 diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
 new file mode 100644
-index 0000000..c36192b
+index 0000000..2757dd6
 --- /dev/null
 +++ b/scripts/native-agents.electron.live.cjs
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,122 @@
 +"use strict";
 +// Run against an isolated Netcatty Electron profile with --remote-debugging-port=9222.
 +const fs = require('node:fs/promises');
@@ -2292,7 +2292,13 @@ index 0000000..c36192b
 +  const root = process.env.NETCATTY_NATIVE_RUNTIME;
 +  assert(root, 'Set NETCATTY_NATIVE_RUNTIME');
 +  const entries = JSON.parse(await fs.readFile(path.join(root, 'engines.json'), 'utf8'));
-+  const service = await createNativeModelService();
++  const resumeChecks = [];
++  const service = await createNativeModelService((body) => {
++    const latestUser = body.messages?.findLast((message) => message.role === 'user');
++    if (JSON.stringify(latestUser?.content).includes('NC_ECHO resumed Electron turn')) {
++      resumeChecks.push(JSON.stringify(body.messages).includes('first persisted Electron turn'));
++    }
++  });
 +  const cdp = await connect();
 +  const scratch = await fs.mkdtemp(path.join(root, 'electron-smoke-'));
 +  try {
@@ -2304,6 +2310,7 @@ index 0000000..c36192b
 +      return { title: document.title, localPty: true };
 +    })()`));
 +    for (const engine of (process.env.NATIVE_ENGINES || 'dsh,pi,omp').split(',')) {
++      const resumeCheckStart = resumeChecks.length;
 +      const dir = path.join(scratch, engine); await fs.mkdir(dir);
 +      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
 +      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
@@ -2360,8 +2367,8 @@ index 0000000..c36192b
 +          return { engine: config.engine, realCliResume: true, nativeInteraction: true, scopedMcp: true, approvalAndDenial: true, localPtyExecution: true, stopPendingApproval: true, events: events.length };
 +        } finally { offNative(); offApproval(); await api.aiSdkAgentCleanup(chat); }
 +      })(${JSON.stringify(config)})`);
-+      console.log(JSON.stringify(result));
-+      assert(JSON.stringify(service.requests.at(-1)).includes('first persisted Electron turn'), `${engine}: persisted history missing`);
++      assert(resumeChecks.slice(resumeCheckStart).some(Boolean), `${engine}: persisted history missing from the resumed model request`);
++      console.log(JSON.stringify({ ...result, resumedHistoryPreserved: true }));
 +    }
 +  } finally {
 +    await fs.writeFile(path.join(scratch, 'model-requests.json'), JSON.stringify(service.requests, null, 2));
