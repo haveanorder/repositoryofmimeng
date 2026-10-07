@@ -678,12 +678,12 @@ index 3ab537d..0991423 100644
    buildExternalAgentSystemContext,
    buildExternalAgentContextualPrompt,
 diff --git a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
-index f80085c..30c2a6c 100644
+index f80085c..e183fdd 100644
 --- a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 +++ b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 @@ -1,4 +1,5 @@
  /* eslint-disable no-undef */
-+const { nativeEntry, prepareNativeCommand } = require('./sdk/nativeCli.cjs');
++const { nativeEntry, prepareNativeCommand, installedNativePath } = require('./sdk/nativeCli.cjs');
  function getCursorPlatformPackageName(platform = process.platform, arch = process.arch) {
    if (platform === "darwin" && (arch === "arm64" || arch === "x64")) return `@cursor/sdk-darwin-${arch}`;
    if (platform === "linux" && (arch === "arm64" || arch === "x64")) return `@cursor/sdk-linux-${arch}`;
@@ -711,7 +711,13 @@ index f80085c..30c2a6c 100644
        { command: "claude", name: "Claude Code", icon: "claude",
          description: "Anthropic's agentic coding assistant", sdkBackend: "claude", args: [] },
        { command: "codex", name: "Codex CLI", icon: "openai",
-@@ -123,7 +134,7 @@ function registerAgentDiscoveryHandlers(ctx) {
+@@ -118,12 +129,12 @@ function registerAgentDiscoveryHandlers(ctx) {
+         ? (cursorSdkStatus.cliLoginOk
+           ? (cursorSdkStatus.cliBinPath || "cursor")
+           : (cursorSdkStatus.sdkInstalled ? "cursor" : (cursorSdkStatus.cliBinPath || "cursor")))
+-        : await resolveCliFromPathAsync(agent.command, shellEnv); // Layer-1: locate
++        : (await resolveCliFromPathAsync(agent.command, shellEnv) || installedNativePath(agent.command, shellEnv)); // Layer-1: locate
+       if (!resolvedPath || seenPaths.has(resolvedPath)) continue;
  
        const probe = agent.command === "cursor"
          ? { exitCode: 0, version: cursorSdkStatus.version }
@@ -720,6 +726,15 @@ index f80085c..30c2a6c 100644
        const hasPlausibleVersion = agent.command === "cursor"
          ? probe.exitCode === 0
          : probe.exitCode === 0 && isPlausibleCliVersionOutput(probe.version);
+@@ -206,7 +217,7 @@ function registerAgentDiscoveryHandlers(ctx) {
+       // make Settings appear to accept one binary while actually using another.
+       resolvedPath = normalizeCliPathForPlatform(customPath);
+     } else {
+-      resolvedPath = await resolveCliFromPathAsync(command, shellEnv);
++      resolvedPath = await resolveCliFromPathAsync(command, shellEnv) || installedNativePath(command, shellEnv);
+     }
+ 
+     if (command === "cursor") {
 @@ -245,7 +256,7 @@ function registerAgentDiscoveryHandlers(ctx) {
        return { path: null, binPath: null, version: null, available: false, installed: false };
      }
@@ -827,10 +842,10 @@ index 224fccd..54bf2a0 100644
        const options = claude.buildClaudeQueryOptions({
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.cjs b/electron/bridges/aiBridge/sdk/nativeCli.cjs
 new file mode 100644
-index 0000000..6c92e9b
+index 0000000..822c466
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeCli.cjs
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,40 @@
 +"use strict";
 +const path = require('node:path');
 +const fs = require('node:fs');
@@ -862,7 +877,15 @@ index 0000000..6c92e9b
 +  }
 +  return prepareCommandForSpawn(command, args, { unwrapNativeExe: false });
 +}
-+module.exports = { nativeEntry, prepareNativeCommand };
++function installedNativePath(engine, env) {
++  if (process.platform !== 'win32') return null;
++  const home = env.USERPROFILE || env.HOME;
++  const candidates = engine === 'omp' && env.LOCALAPPDATA ? [path.join(env.LOCALAPPDATA, 'omp', 'omp.exe')]
++    : engine === 'pi' && home ? [path.join(home, '.pi', 'agent', 'bin', 'pi.cmd')]
++    : engine === 'dsh' && env.APPDATA ? [path.join(env.APPDATA, 'npm', 'dsh.cmd')] : [];
++  return candidates.find(file => fs.existsSync(file)) || null;
++}
++module.exports = { nativeEntry, prepareNativeCommand, installedNativePath };
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.test.cjs b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
 new file mode 100644
 index 0000000..b63b6b7
