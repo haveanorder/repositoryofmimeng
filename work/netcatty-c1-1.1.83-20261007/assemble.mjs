@@ -11,13 +11,14 @@ const header = asar.getRawHeader(original).header;
 asar.extractAll(original, staging);
 const pkg = JSON.parse(fs.readFileSync(path.join(staging, 'package.json')));
 if (pkg.name !== 'netcatty' || pkg.version !== '1.1.83') throw Error('Expected official Netcatty 1.1.83');
-const changed = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: source, encoding: 'utf8' }).trim().split('\n');
+const changed = (execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: source, encoding: 'utf8' }) + execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: source, encoding: 'utf8' })).trim().split('\n');
 for (const file of changed) {
   if (!file.startsWith('electron/') && !file.startsWith('packages/netcatty-dsh-bridge/')) continue;
   if (/\.test\./.test(file)) continue;
   fs.mkdirSync(path.dirname(path.join(staging, file)), { recursive: true });
   fs.copyFileSync(path.join(source, file), path.join(staging, file));
 }
+fs.rmSync(path.join(staging, 'dist'), { recursive: true, force: true });
 fs.cpSync(path.join(source, 'dist'), path.join(staging, 'dist'), { recursive: true });
 const unpacked = new Set();
 function remember(node, prefix = '', inherited = false) {
@@ -48,5 +49,19 @@ const payload = path.join(output, 'payload/resources');
 fs.mkdirSync(payload, { recursive: true });
 await asar.createPackageFromStreams(path.join(payload, 'app.asar'), streams);
 const digest = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-fs.writeFileSync(path.join(output, 'manifest.json'), JSON.stringify({ base: '1.1.83', architecture: 'x64', originalAsar: digest(original), patchedAsar: digest(path.join(payload, 'app.asar')), status: 'acceptance-pending' }, null, 2));
+const files = [];
+function prune(directory, prefix = '') {
+  for (const name of fs.readdirSync(directory)) {
+    const file = path.join(directory, name);
+    const relative = prefix ? prefix + '/' + name : name;
+    if (fs.statSync(file).isDirectory()) { prune(file, relative); continue; }
+    const oldFile = path.join(official, relative);
+    const before = fs.existsSync(oldFile) ? digest(oldFile) : null;
+    const after = digest(file);
+    if (before === after) { fs.unlinkSync(file); continue; }
+    files.push({ path: relative, before, after });
+  }
+}
+prune(path.join(output, 'payload'));
+fs.writeFileSync(path.join(output, 'manifest.json'), JSON.stringify({ base: '1.1.83', architecture: 'x64', originalAsar: digest(original), patchedAsar: digest(path.join(payload, 'app.asar')), status: 'acceptance-pending', files }, null, 2));
 console.log('Assembled resources with original name, version and Windows dependencies.');
