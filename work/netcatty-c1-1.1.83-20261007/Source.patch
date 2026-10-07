@@ -354,7 +354,7 @@ index 0000000..2a60f8b
 +}
 diff --git a/application/state/useNativeAgentSettings.ts b/application/state/useNativeAgentSettings.ts
 new file mode 100644
-index 0000000..acff234
+index 0000000..14806cb
 --- /dev/null
 +++ b/application/state/useNativeAgentSettings.ts
 @@ -0,0 +1,43 @@
@@ -387,8 +387,8 @@ index 0000000..acff234
 +      if (!Array.isArray(argumentsList) || argumentsList.some((value) => typeof value !== 'string')) throw new Error('Arguments must be a JSON array of strings.');
 +      const variables = JSON.parse(env) as Record<string, string>;
 +      if (!variables || typeof variables !== 'object' || Array.isArray(variables) || Object.values(variables).some((value) => typeof value !== 'string')) throw new Error(t('ai.native.invalidEnvironment'));
-+      const resolved = await netcattyBridge.get()?.aiResolveCli?.({ command: engine, customPath: command || undefined, refreshShellEnv: true });
-+      if (!resolved?.available || !resolved.path) throw new Error(t('ai.native.cliNotFound'));
++      const resolved = await netcattyBridge.get()?.aiResolveCli?.({ command: engine, customPath: command || undefined, refreshShellEnv: true, nativeSettings: { cwd, model, args: argumentsList as string[], extensions: extensions.split('\n').map(line => line.trim()).filter(Boolean), env: variables } });
++      if (!resolved?.available || !resolved.path) throw new Error(resolved?.error || t('ai.native.cliNotFound'));
 +      save({ ...config, id: `discovered_${engine}`, name: NATIVE_AGENTS[engine].name, sdkBackend: engine,
 +        command: resolved.path, commandSource: 'manual', cliVersion: resolved.version, enabled: true, available: true, args: argumentsList as string[],
 +        env: variables, apiKey: apiKey ? await encryptField(apiKey) : clearKey ? undefined : config?.apiKey,
@@ -678,7 +678,7 @@ index 3ab537d..0991423 100644
    buildExternalAgentSystemContext,
    buildExternalAgentContextualPrompt,
 diff --git a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
-index f80085c..e183fdd 100644
+index f80085c..e99169a 100644
 --- a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 +++ b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 @@ -1,4 +1,5 @@
@@ -726,6 +726,15 @@ index f80085c..e183fdd 100644
        const hasPlausibleVersion = agent.command === "cursor"
          ? probe.exitCode === 0
          : probe.exitCode === 0 && isPlausibleCliVersionOutput(probe.version);
+@@ -191,7 +202,7 @@ function registerAgentDiscoveryHandlers(ctx) {
+   });
+ 
+   // Resolve a CLI binary path (auto-detect or validate custom path)
+-  ipcMain.handle("netcatty:ai:resolve-cli", async (event, { command, customPath, refreshShellEnv, apiKeyPresent }) => {
++  ipcMain.handle("netcatty:ai:resolve-cli", async (event, { command, customPath, refreshShellEnv, apiKeyPresent, nativeSettings }) => {
+     if (!validateSenderOrSettings(event)) return { ok: false, error: "Unauthorized IPC sender" };
+     if (refreshShellEnv) {
+       invalidateShellEnvCache();
 @@ -206,7 +217,7 @@ function registerAgentDiscoveryHandlers(ctx) {
        // make Settings appear to accept one binary while actually using another.
        resolvedPath = normalizeCliPathForPlatform(customPath);
@@ -744,6 +753,29 @@ index f80085c..e183fdd 100644
      const hasPlausibleVersion = command === "cursor"
        ? probe.exitCode === 0
        : probe.exitCode === 0 && isPlausibleCliVersionOutput(probe.version);
+@@ -253,6 +264,22 @@ function registerAgentDiscoveryHandlers(ctx) {
+       return { path: resolvedPath, binPath: resolvedPath, version: null, available: false, installed: true };
+     }
+ 
++    if (nativeSettings && ['omp', 'pi', 'dsh'].includes(command)) {
++      try {
++        const env = buildSdkAgentEnv({ shellEnv, requestedAgentEnv: nativeSettings.env });
++        env.NETCATTY_NATIVE_ARGS = JSON.stringify(nativeSettings.args || []);
++        env.NETCATTY_NATIVE_EXTENSIONS = JSON.stringify(nativeSettings.extensions || []);
++        env.NETCATTY_NATIVE_LOCAL_TOOLS = 'disabled';
++        await require('./sdk/index.cjs').getDriver(command).checkConnection({
++          binPath: resolvedPath, env, cwd: nativeSettings.cwd || require('node:os').homedir(),
++          model: nativeSettings.model || undefined, permissionMode: 'observer', injectedMcpServers: [],
++          chatSessionId: 'native-check-' + require('node:crypto').randomUUID(), sender: event.sender,
++          getTempDir: () => require('../tempDirBridge.cjs').getTempDir(),
++        });
++      } catch (error) {
++        return { path: resolvedPath, version: probe.version, available: false, installed: true, error: error.message };
++      }
++    }
+     return { path: resolvedPath, binPath: resolvedPath, version: probe.version, available: true, installed: true };
+   });
+ 
 diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 new file mode 100644
 index 0000000..df8b0fa
@@ -840,6 +872,33 @@ index 224fccd..54bf2a0 100644
    claude: {
      async runTurn(ctx) {
        const options = claude.buildClaudeQueryOptions({
+diff --git a/electron/bridges/aiBridge/sdk/index.test.cjs b/electron/bridges/aiBridge/sdk/index.test.cjs
+index 994da00..3e5f36f 100644
+--- a/electron/bridges/aiBridge/sdk/index.test.cjs
++++ b/electron/bridges/aiBridge/sdk/index.test.cjs
+@@ -8,11 +8,11 @@ const {
+ const { codebuddySessionManager } = require("./codebuddySessionManager.cjs");
+ 
+ test("registry exposes SDK backends", () => {
+-  assert.deepEqual(listBackends().sort(), ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]);
++  assert.deepEqual(listBackends().sort(), ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]);
+ });
+ 
+ test("getDriver returns a driver with runTurn", () => {
+-  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]) {
++  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]) {
+     const d = getDriver(key);
+     assert.equal(typeof d.runTurn, "function", `${key} must expose runTurn`);
+   }
+@@ -23,7 +23,7 @@ test("getDriver throws on unknown backend", () => {
+ });
+ 
+ test("SDK drivers expose listModels; codex returns [] (no catalog)", async () => {
+-  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "grok", "opencode"]) {
++  for (const key of ["claude", "codebuddy", "codex", "copilot", "cursor", "dsh", "grok", "omp", "opencode", "pi"]) {
+     assert.equal(typeof getDriver(key).listModels, "function", `${key} must expose listModels`);
+   }
+   assert.deepEqual(await getDriver("codex").listModels({}), []);
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.cjs b/electron/bridges/aiBridge/sdk/nativeCli.cjs
 new file mode 100644
 index 0000000..822c466
@@ -1151,10 +1210,10 @@ index 0000000..ee58f59
 +});
 diff --git a/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
 new file mode 100644
-index 0000000..57a0c01
+index 0000000..6eba89b
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,217 @@
 +"use strict";
 +const path = require('node:path');
 +const fs = require('node:fs/promises');
@@ -1344,6 +1403,13 @@ index 0000000..57a0c01
 +      if (session && (session.engine !== engine || session.key !== fingerprint(ctx))) { await session.close(); session = null; }
 +      if (!session) { session = new NativeSession(engine, implementation, ctx); sessions.set(ctx.chatSessionId, session); }
 +      return session.run(ctx);
++    },
++    async checkConnection(ctx) {
++      const session = new NativeSession(engine, implementation, ctx);
++      try {
++        await session.start();
++        return { version: session.version, connected: true };
++      } finally { await session.close(); }
 +    },
 +    async listModels() { return []; },
 +  };
@@ -1990,6 +2056,116 @@ index 0000000..3eadbaf
 +  ctx.effect(() => () => input.close(), 'netcatty.input');
 +  send({ type: 'ready', version: process.env.NETCATTY_NATIVE_VERSION, bridgeVersion: 1 });
 +}
+diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
+new file mode 100644
+index 0000000..de4e239
+--- /dev/null
++++ b/scripts/native-agents.electron.live.cjs
+@@ -0,0 +1,104 @@
++"use strict";
++// Run against an isolated Netcatty Electron profile with --remote-debugging-port=9222.
++const fs = require('node:fs/promises');
++const path = require('node:path');
++const assert = require('node:assert/strict');
++const { createNativeModelService } = require('./native-model-service.cjs');
++
++async function connect(pagePattern) {
++  const pages = await (await fetch(`http://127.0.0.1:${process.env.NATIVE_ELECTRON_PORT || 9222}/json/list`)).json();
++  const page = pages.find((entry) => entry.type === 'page' && !entry.url.startsWith('devtools:') && (pagePattern ? entry.url.includes(pagePattern) : !entry.url.includes('#/settings')));
++  assert(page, 'Netcatty Electron window must be running');
++  const ws = new WebSocket(page.webSocketDebuggerUrl);
++  await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }));
++  const pending = new Map(); let id = 0;
++  ws.addEventListener('message', ({ data }) => {
++    const message = JSON.parse(data); const p = pending.get(message.id);
++    if (!p) return;
++    pending.delete(message.id);
++    if (message.error || message.result.exceptionDetails) p.reject(new Error(JSON.stringify(message.error || message.result.exceptionDetails)));
++    else p.resolve(message.result);
++  });
++  const request = (method, params) => new Promise((resolve, reject) => {
++      pending.set(++id, { resolve, reject });
++      ws.send(JSON.stringify({ id, method, params }));
++    });
++  return { request, evaluate: async (expression) => (await request('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.value, close: () => ws.close() };
++}
++async function main() {
++  const root = process.env.NETCATTY_NATIVE_RUNTIME;
++  assert(root, 'Set NETCATTY_NATIVE_RUNTIME');
++  const service = await createNativeModelService();
++  const shell = process.platform === 'win32' ? path.join(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe') : '/bin/bash';
++  const workspace = process.cwd();
++  const cdp = await connect();
++  const scratch = await fs.mkdtemp(path.join(root, 'electron-smoke-'));
++  try {
++    console.log(await cdp.evaluate(`(async () => {
++      const api = window.netcatty;
++      for (const sessionId of ['native-smoke-a', 'native-smoke-b']) await api.startLocalSession({ sessionId, shell: ${JSON.stringify(shell)}, cwd: ${JSON.stringify(workspace)}, cols: 100, rows: 30 });
++      await api.aiMcpSetPermissionMode('confirm');
++      await api.aiMcpUpdateLiveSessions(['a','b'].map(x => ({ sessionId: 'native-smoke-' + x, hostname: 'local-' + x, label: 'Native smoke ' + x, protocol: 'local', shellType: 'bash', connected: true })));
++      return { title: document.title, localPty: true };
++    })()`));
++    for (const engine of (process.env.NATIVE_ENGINES || 'dsh,pi,omp').split(',')) {
++      const dir = path.join(scratch, engine); await fs.mkdir(dir);
++      const models = { providers: { local: { api: 'openai-completions', baseUrl: `${service.url}/v1`, apiKey: 'local-test-key', models: [{ id: 'netcatty-smoke', reasoning: false, input: ['text'], contextWindow: 64000, maxTokens: 4096, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }] } } };
++      await fs.writeFile(path.join(dir, 'models.json'), JSON.stringify(models));
++      await fs.writeFile(path.join(dir, 'models.yml'), JSON.stringify(models));
++      const config = { engine, cwd: scratch, bin: engine === 'omp' ? path.join(root, 'bin', process.platform === 'win32' ? 'omp.exe' : 'omp') : path.join(root, 'runtime/node_modules/.bin', process.platform === 'win32' ? engine + '.cmd' : engine), model: engine === 'dsh' ? 'deepseek-official/deepseek-flash' : 'local/netcatty-smoke', env: { PI_CODING_AGENT_DIR: dir, DSH_HOME: path.join(dir, 'dsh'), DEEPSEEK_API_KEY: 'local-test-key', DEEPSEEK_BASE_URL: service.url, NETCATTY_NATIVE_LOCAL_TOOLS: 'disabled' } };
++      const result = await cdp.evaluate(`(async (config) => {
++        const api = window.netcatty; const chat = 'native-electron-' + config.engine;
++        const events = []; let allow = false; let approvals = 0;
++        let approvalSeen;
++        await api.aiMcpUpdateSessions([{sessionId:'native-smoke-a',hostname:'local-a',label:'Native smoke a',protocol:'local',shellType:'bash',connected:true}], chat);
++        const offApproval = api.onMcpApprovalRequest((request) => {
++          if (request.chatSessionId !== chat) return;
++          approvals++;
++          if (approvalSeen) approvalSeen(request);
++          else api.respondMcpApproval(request.approvalId, allow, 'once');
++        });
++        const run = async (prompt) => {
++          const requestId = crypto.randomUUID();
++          const off = api.onAiSdkAgentEvent(requestId, (event) => events.push(event));
++          const offError = api.onAiSdkAgentError(requestId, (error) => events.push({type:'fatal',error}));
++          try { const result = await api.aiSdkAgentStream(requestId, chat, config.engine, prompt, config.cwd, undefined, config.model, undefined, [], undefined, 'mcp', undefined, undefined, config.env, config.bin, undefined, 'confirm'); if (!result.ok) throw Error(JSON.stringify(result)); }
++          finally { off(); offError(); }
++        };
++        try {
++          await run('NC_REMOTE inspect the scoped connected terminals');
++          const environment = events.filter(event => event.type === 'tool-result');
++          if (!JSON.stringify(environment).includes('local-a') || JSON.stringify(environment).includes('local-b')) throw Error('MCP scope failed: ' + JSON.stringify(events));
++          await run('NC_EXEC denied terminal command');
++          const denied = events.filter(event => event.type === 'tool-result').at(-1);
++          if (JSON.stringify(denied).includes('NETCATTY_MCP_CLI_OK')) throw Error('Denied command executed');
++          allow = true;
++          await run('NC_EXEC approved terminal command');
++          const executed = events.filter(event => event.type === 'tool-result').at(-1);
++          if (!JSON.stringify(executed).includes('NETCATTY_MCP_CLI_OK')) throw Error('Terminal command did not execute: ' + JSON.stringify(executed));
++          if (approvals < 2) throw Error('Missing approvals');
++          const beforeStop = events.length;
++          const waiting = new Promise(resolve => { approvalSeen = resolve; });
++          const pendingTurn = run('NC_EXEC cancel while waiting for approval');
++          const pendingRequest = await waiting;
++          await api.aiSdkAgentCancel('', chat);
++          await api.respondMcpApproval(pendingRequest.approvalId, true, 'once');
++          await pendingTurn;
++          if (events.slice(beforeStop).some(event => event.type === 'tool-result' && JSON.stringify(event.output).includes('NETCATTY_MCP_CLI_OK'))) throw Error('Late approval executed after stop');
++          return { engine: config.engine, scopedMcp: true, approvalAndDenial: true, localPtyExecution: true, stopPendingApproval: true, events: events.length };
++        } finally { offApproval(); await api.aiSdkAgentCleanup(chat); }
++      })(${JSON.stringify(config)})`);
++      console.log(JSON.stringify(result));
++    }
++  } finally {
++    await fs.writeFile(path.join(scratch, 'model-requests.json'), JSON.stringify(service.requests, null, 2));
++    await cdp.evaluate(`Promise.all(['native-smoke-a','native-smoke-b'].map(id=>window.netcatty.closeSession(id)))`).catch(() => {});
++    cdp.close(); await service.close();
++  }
++  console.log(`Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. ${scratch}`);
++}
++if (require.main === module) {
++  const timer = setTimeout(() => { console.error('Electron native smoke timed out'); process.exit(1); }, 180000);
++  main().then(() => clearTimeout(timer), (error) => { clearTimeout(timer); console.error(error); process.exitCode = 1; });
++}
++module.exports = { connect };
 diff --git a/scripts/native-agents.live.cjs b/scripts/native-agents.live.cjs
 new file mode 100644
 index 0000000..e84bc97
@@ -2196,7 +2372,7 @@ index 0000000..cde75cd
 +}
 +module.exports = { createNativeModelService };
 diff --git a/types/global/netcatty-bridge-ai.d.ts b/types/global/netcatty-bridge-ai.d.ts
-index 76a8017..d616f95 100644
+index 76a8017..7b14cee 100644
 --- a/types/global/netcatty-bridge-ai.d.ts
 +++ b/types/global/netcatty-bridge-ai.d.ts
 @@ -1,7 +1,11 @@
@@ -2207,7 +2383,7 @@ index 76a8017..d616f95 100644
    interface NetcattyBridge {
 +    aiNativeSessionControl?(payload: NativeControl): Promise<NativeControlResult>;
 +    onAiNativeSessionEvent?(chatSessionId: string, callback: (snapshot: NativeSessionSnapshot) => void): () => void;
-+    aiResolveCli?(options: { command: string; customPath?: string; refreshShellEnv?: boolean }): Promise<{ path: string | null; version?: string; available?: boolean }>;
++    aiResolveCli?(options: { command: string; customPath?: string; refreshShellEnv?: boolean; nativeSettings?: { cwd?: string; model?: string; args?: string[]; extensions?: string[]; env?: Record<string, string> } }): Promise<{ path: string | null; version?: string; available?: boolean; error?: string }>;
      // AI / external agents
      aiSyncProviders?(providers: Array<{ id: string; providerId: string; apiKey?: string; baseURL?: string; enabled: boolean }>): Promise<{ ok: boolean }>;
      aiChatStream?(requestId: string, url: string, headers?: Record<string, string>, body?: string, providerId?: string, idleTimeoutMs?: number): Promise<{ ok: boolean; statusCode?: number; statusText?: string; error?: string; aborted?: boolean }>;
