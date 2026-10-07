@@ -1,0 +1,8 @@
+{"engine":"omp","actualSettingsModelCheck":"Oh My Pi omp/18.5.1: model replied successfully; configuration saved."}
+{"engine":"pi","actualSettingsModelCheck":"Pi 1.0.3: model replied successfully; configuration saved."}
+{"engine":"dsh","actualSettingsModelCheck":"DeepSeek Harness 0.2.0-rc.2: model replied successfully; configuration saved."}
+{"settingsSaved":[{"engine":"omp","version":"omp/18.5.1","keyPresent":true,"encryptedKey":false},{"engine":"pi","version":"1.0.3","keyPresent":true,"encryptedKey":false},{"engine":"dsh","version":"0.2.0-rc.2","keyPresent":true,"encryptedKey":false}]}
+{"engine":"omp","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+{"engine":"pi","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+{"engine":"dsh","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+Actual packaged settings + saved config + sidebar AgentRuntime; LOCAL controlled model only. /workspace/netcatty-c1-1183/engines/ui-smoke-PaDQEH

@@ -1,0 +1,18 @@
+micromark-extension-mdx-jsx@3.0.2 ✔
+node-pty@1.1.0 ✔
+ssh2@1.17.0 ✔
+[patch-xterm-macos-column-selection] version=6.1.0-beta.292 changed=5 checked=5 vite-cache=invalidated
+  • electron-builder  version=26.15.2
+  • detected workspace root for project using lock file  pm=npm config=undefined resolved=/workspace/netcatty-c1-1183/baseline/Netcatty-1.1.83 projectDir=/workspace/netcatty-c1-1183/baseline/Netcatty-1.1.83
+  • executing @electron/rebuild  electronVersion=42.3.3 arch=x64 buildFromSource=false workspaceRoot=/workspace/netcatty-c1-1183/baseline/Netcatty-1.1.83 projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=@serialport/bindings-cpp arch=x64
+  • finished        moduleName=@serialport/bindings-cpp arch=x64
+  • preparing       moduleName=@vscode/windows-process-tree arch=x64
+  • finished        moduleName=@vscode/windows-process-tree arch=x64
+  • preparing       moduleName=node-pty arch=x64
+  • finished        moduleName=node-pty arch=x64
+  • preparing       moduleName=sqlite3 arch=x64
+  • finished        moduleName=sqlite3 arch=x64
+  • completed installing native dependencies
+[patch-xterm-webgl-atlas] verify version=0.20.0-beta.291 ok=2 missing=0

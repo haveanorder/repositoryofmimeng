@@ -1,0 +1,5 @@
+{ title: 'netcatty SSH', localPty: true }
+{"engine":"dsh","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":36,"resumedHistoryPreserved":true}
+{"engine":"pi","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":34,"resumedHistoryPreserved":true}
+{"engine":"omp","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":34,"resumedHistoryPreserved":true}
+Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. /workspace/netcatty-c1-1183/engines/electron-smoke-XxPY4n

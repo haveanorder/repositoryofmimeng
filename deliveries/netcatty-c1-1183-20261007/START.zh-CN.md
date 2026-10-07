@@ -2,6 +2,8 @@
 
 本补丁从官方 v1.1.83（源码 `d7a0c8ed8d238dcf1c82d786da53037a1f1496b1`）移植 C1 的 OMP、Pi、DeepSeek Harness 接入。应用版本保持 1.1.83，补丁标识为 `C1-1183-20261007`。原 Netcatty.exe、快捷方式、应用身份和正常用户数据目录继续使用；不切换到 netcatty-c1。现有主机、密钥、聊天、设置以及 Codex/Claude 接入沿用原结构。
 
+已在实际 Windows x64 上通过设置、侧栏、真实 CLI、MCP、审批、停止、恢复、补丁应用及回滚验收。测试使用本地可控模型与本地终端；真实云模型和 SSH/SFTP、本机配置请按下方短步骤检查。
+
 ## 应用与回滚
 
 1. 下载并完整解压 `Netcatty-1.1.83-C1-Windows-x64-Patch.zip`。

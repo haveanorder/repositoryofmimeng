@@ -1,0 +1,10 @@
+✔ electron/bridges/aiBridge/agentCliHelpers.test.cjs (80.412415ms)
+✔ electron/bridges/aiBridge/agentDiscoveryHandlers.test.cjs (49.017495ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.913564

@@ -1,0 +1,13 @@
+✔ electron/bridges/aiBridge/agentDiscoveryHandlers.test.cjs (52.428499ms)
+✔ electron/bridges/aiBridge/sdk/index.test.cjs (67.717272ms)
+✔ electron/bridges/aiBridge/sdk/nativeCli.test.cjs (42.487318ms)
+✔ electron/bridges/aiBridge/sdk/nativeRpcConnection.test.cjs (50.46522ms)
+✔ electron/bridges/aiBridge/sdk/sdkStreamHandlers.test.cjs (77.120369ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 138.751904

@@ -1,0 +1,28 @@
+{
+  "platform": "linux-x64",
+  "electron": "42.3.3",
+  "versions": {
+    "omp": "18.5.1",
+    "pi": "1.0.3",
+    "dsh": "0.2.0-rc.2"
+  },
+  "model": "explicit local controlled HTTP service; no cloud credentials",
+  "passed": [
+    "production build",
+    "lint",
+    "pack:dir",
+    "targeted SDK/registry/protocol/discovery regression",
+    "packaged settings save/model check",
+    "sidebar AgentRuntime response",
+    "real CLI local workspace approval/denial",
+    "native interaction",
+    "native CLI resume",
+    "Netcatty MCP scope and local PTY execution",
+    "stop while approval pending; late approval ignored"
+  ],
+  "untested": [
+    "real SSH/SFTP server",
+    "cloud model response",
+    "user PC installation"
+  ]
+}

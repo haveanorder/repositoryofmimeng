@@ -1,0 +1,37 @@
+﻿2026-10-07T09:50:10.5640084Z ##[group]Run & ./source/Netcatty-1.1.83/scripts/windows-1183-acceptance.ps1 -SourceDir ./source/Netcatty-1.1.83 -DeliveryDir ./deliveries/netcatty-c1-1183-20261007 2>&1 | Tee-Object -FilePath windows-acceptance.log
+2026-10-07T09:50:10.5641730Z & ./source/Netcatty-1.1.83/scripts/windows-1183-acceptance.ps1 -SourceDir ./source/Netcatty-1.1.83 -DeliveryDir ./deliveries/netcatty-c1-1183-20261007 2>&1 | Tee-Object -FilePath windows-acceptance.log
+2026-10-07T09:50:10.5642631Z if (!$?) { throw 'Windows acceptance failed' }
+2026-10-07T09:50:10.5711283Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-07T09:50:10.5711640Z env:
+2026-10-07T09:50:10.5712002Z   NETCATTY_NATIVE_RUNTIME: D:\a\repositoryofmimeng\repositoryofmimeng/cli Existing Agent Entries
+2026-10-07T09:50:10.5712466Z   NATIVE_ENGINES: dsh,pi,omp
+2026-10-07T09:50:10.5712684Z ##[endgroup]
+2026-10-07T09:50:22.0250344Z Original 1.1.83: synthetic host/key/chat/Codex/settings seeded through existing profile and safeStorage.
+2026-10-07T09:50:27.4753151Z 目录：D:\a\repositoryofmimeng\repositoryofmimeng\Trial Install With Spaces
+2026-10-07T09:50:27.4756769Z Netcatty 1.1.83.0 / Windows x64；资源检查通过。
+2026-10-07T09:50:27.4768153Z 保持当前启动入口和用户数据目录；只修改清单中的应用资源。
+2026-10-07T09:50:28.3210569Z 目录：D:\a\repositoryofmimeng\repositoryofmimeng\Trial Install With Spaces
+2026-10-07T09:50:28.3215934Z Netcatty 1.1.83.0 / Windows x64；资源检查通过。
+2026-10-07T09:50:28.3222716Z 保持当前启动入口和用户数据目录；只修改清单中的应用资源。
+2026-10-07T09:50:28.8027435Z 补丁已应用。通过原快捷方式启动 Netcatty，在 设置 → AI → Agents 配置三个已有 Agent。
+2026-10-07T09:50:28.8058838Z 原程序资源备份：D:\a\repositoryofmimeng\repositoryofmimeng\Trial Install With Spaces\.netcatty-c1-1183-backup
+2026-10-07T09:50:33.0473152Z {"retainedOriginalProfile":{"host":true,"key":true,"chat":true,"codex":true,"setting":true,"credential":true,"dpapi":true}}
+2026-10-07T09:50:39.7741252Z {"engine":"omp","actualSettingsModelCheck":"Oh My Pi omp/18.5.1: model replied successfully; configuration saved."}
+2026-10-07T09:50:42.0532318Z {"engine":"pi","actualSettingsModelCheck":"Pi 1.0.3: model replied successfully; configuration saved."}
+2026-10-07T09:50:48.8809477Z {"engine":"dsh","actualSettingsModelCheck":"DeepSeek Harness 0.2.0-rc.2: model replied successfully; configuration saved."}
+2026-10-07T09:50:48.8895401Z {"settingsSaved":[{"engine":"omp","version":"omp/18.5.1","keyPresent":true,"encryptedKey":true},{"engine":"pi","version":"1.0.3","keyPresent":true,"encryptedKey":true},{"engine":"dsh","version":"0.2.0-rc.2","keyPresent":true,"encryptedKey":true}]}
+2026-10-07T09:50:51.9114052Z {"engine":"omp","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+2026-10-07T09:50:54.9739018Z {"engine":"pi","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+2026-10-07T09:50:59.4003102Z {"engine":"dsh","agentSelectedInSidebar":true,"realCliResponseInSidebar":true}
+2026-10-07T09:50:59.4774094Z Actual packaged settings + saved config + sidebar AgentRuntime; LOCAL controlled model only. D:\a\repositoryofmimeng\repositoryofmimeng\cli Existing Agent Entries\ui-smoke-sSdCBZ
+2026-10-07T09:50:59.9620822Z { title: 'netcatty SSH', localPty: true }
+2026-10-07T09:51:10.4475535Z {"engine":"dsh","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":36,"resumedHistoryPreserved":true}
+2026-10-07T09:51:15.7085052Z {"engine":"pi","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":35,"resumedHistoryPreserved":true}
+2026-10-07T09:51:24.1365788Z {"engine":"omp","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":34,"resumedHistoryPreserved":true}
+2026-10-07T09:51:24.1786309Z Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. D:\a\repositoryofmimeng\repositoryofmimeng\cli Existing Agent Entries\electron-smoke-OSsnTM
+2026-10-07T09:51:24.6001777Z { title: 'netcatty SSH', localPty: true }
+2026-10-07T09:51:29.1819763Z {"engine":"pi","realCliResume":true,"nativeInteraction":true,"scopedMcp":true,"approvalAndDenial":true,"localPtyExecution":true,"stopPendingApproval":true,"events":35,"resumedHistoryPreserved":true}
+2026-10-07T09:51:29.2164602Z Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. D:\a\repositoryofmimeng\repositoryofmimeng\cli Existing Agent Entries\electron-smoke-7VNCzS
+2026-10-07T09:51:33.6152822Z 已恢复官方 1.1.83 程序资源。当前主机、密钥、设置和聊天数据仍保留；备份也已保留。
+2026-10-07T09:51:38.0005048Z {"retainedOriginalProfile":{"host":true,"key":true,"chat":true,"codex":true,"setting":true,"credential":true,"dpapi":true}}
+2026-10-07T09:51:39.4145200Z WINDOWS PASS: original entry; check/apply/backup/rollback; retained host/key/chat/Codex/settings/DPAPI; target CLI settings/sidebar/MCP/interaction/resume/approval/stop. LOCAL controlled model only.

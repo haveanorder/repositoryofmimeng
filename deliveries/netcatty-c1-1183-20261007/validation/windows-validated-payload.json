@@ -1,0 +1,29 @@
+{
+  "runId": 37603159259,
+  "conclusion": "success",
+  "validatedSourceCommit": "628987bace3fa1497effdc714203b1967a00fa0f",
+  "resourceFiles": [
+    {
+      "path": "resources/app.asar.unpacked/electron/shared/sdkSessionIdentity.cjs",
+      "sha256": "696d16216cf71d9ec048c25185119eaa2260385aafccffca28d8dd3ed8b50013",
+      "originalSha256": "58710cc127efe4beac2be0edece6a8257999256b46db8512b75ef886fed5d36b"
+    },
+    {
+      "path": "resources/app.asar.unpacked/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs",
+      "sha256": "84a48ee699934333d43fe29be363fc6b89fb2061ec5fa5a5484fd6643527fcda",
+      "originalSha256": null
+    },
+    {
+      "path": "resources/app.asar.unpacked/packages/netcatty-dsh-bridge/bridge.mjs",
+      "sha256": "db7430a2eee7b19a8de25730513bb7e8af2ecaab4a5c35f514cdc55b54f05b34",
+      "originalSha256": null
+    },
+    {
+      "path": "resources/app.asar",
+      "sha256": "4a176f08a633dccda74af300e9cd0bf30f3346c988aea9888c228ba96de9e8c6",
+      "originalSha256": "b30477606997ca3ad8a93c276c5c1a8df46bc33b70b3106d97e9d6caebc6914a"
+    }
+  ],
+  "manifestSha256": "dc02863f372aed73de45afedbb83fbeddaa95682be12e27a7ed6aa5ddb7b1c98",
+  "installerSha256": "7eef305f3a38ec1c0bc0be84677bf68f0bbf3dd25c5ef00380121da6d1af00e3"
+}

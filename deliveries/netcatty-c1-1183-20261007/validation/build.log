@@ -1,0 +1,18 @@
+dist/assets/wolfram-lXgVvXCa.js                                   262.39 kB │ gzip:    77.14 kB
+dist/assets/mermaid-O7DHMXV3-DMWG_Tin.js                          380.78 kB │ gzip:   119.67 kB
+dist/assets/useSftpViewTabs-Cky-SyZo.js                           385.09 kB │ gzip:   105.58 kB
+dist/assets/TerminalLayer-CVIXV5Ay.js                             395.26 kB │ gzip:   110.89 kB
+dist/assets/vendor-ai-C3X27dAL.js                                 617.87 kB │ gzip:   154.67 kB
+dist/assets/wasm-CG6Dc4jp.js                                      622.34 kB │ gzip:   230.29 kB
+dist/assets/cpp-CofmeUqb.js                                       626.08 kB │ gzip:    44.82 kB
+dist/assets/vendor-xterm-BYndYExm.js                              706.13 kB │ gzip:   185.54 kB
+dist/assets/emacs-lisp-C9XAeP06.js                                779.85 kB │ gzip:   196.03 kB
+dist/assets/Terminal-CwmLu3bK.js                                  890.77 kB │ gzip:   272.73 kB
+dist/assets/InlineMarkdownEditor.lazy-kWsNpsiK.js               1,273.31 kB │ gzip:   404.63 kB
+dist/assets/index-BB8XX7AA.js                                   4,086.60 kB │ gzip: 1,174.65 kB
+
+(!) Some chunks are larger than 3000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 20.89s
