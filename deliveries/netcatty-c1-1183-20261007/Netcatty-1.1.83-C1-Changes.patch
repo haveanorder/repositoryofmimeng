@@ -753,8 +753,33 @@ index 3ab537d..0991423 100644
    reportOpenedSessionActivity,
    buildExternalAgentSystemContext,
    buildExternalAgentContextualPrompt,
+diff --git a/electron/bridges/aiBridge/agentCliHelpers.cjs b/electron/bridges/aiBridge/agentCliHelpers.cjs
+index b68bd52..901dd9d 100644
+--- a/electron/bridges/aiBridge/agentCliHelpers.cjs
++++ b/electron/bridges/aiBridge/agentCliHelpers.cjs
+@@ -24,7 +24,7 @@ function createAgentCliHelpers(ctx) {
+           killId = null;
+         }
+       }
+-      const spawnSpec = prepareCommandForSpawn(command, args || []);
++      const spawnSpec = options?.spawnSpec || prepareCommandForSpawn(command, args || []);
+       const child = spawn(spawnSpec.command, spawnSpec.args, {
+         stdio: ["ignore", "pipe", "pipe"],
+         cwd: options?.cwd || undefined,
+@@ -116,9 +116,9 @@ function createAgentCliHelpers(ctx) {
+     return getCommandOutput(result).split(/\r?\n/)[0] || "";
+   }
+ 
+-  async function probeCliVersion(probeCmd, probeArgs, env) {
++  async function probeCliVersion(probeCmd, probeArgs, env, spawnSpec) {
+     try {
+-      const result = await runCommand(probeCmd, probeArgs, { env, timeoutMs: 5000 });
++      const result = await runCommand(probeCmd, probeArgs, { env, timeoutMs: 5000, spawnSpec });
+       return {
+         launched: true,
+         exitCode: result.exitCode,
 diff --git a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
-index f80085c..9baaac6 100644
+index f80085c..d710193 100644
 --- a/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 +++ b/electron/bridges/aiBridge/agentDiscoveryHandlers.cjs
 @@ -1,4 +1,5 @@
@@ -770,7 +795,7 @@ index f80085c..9baaac6 100644
 +  async function probeAgentVersion(engine, cliPath, env) {
 +    if (!['omp', 'pi', 'dsh'].includes(engine)) return probeCliVersion(cliPath, ['--version'], env);
 +    const spec = prepareNativeCommand(nativeEntry(cliPath, engine), ['--version'], env);
-+    return probeCliVersion(spec.command, spec.args, env);
++    return probeCliVersion(spec.command, spec.args, env, spec);
 +  }
    ipcMain.handle("netcatty:ai:agents:discover", async (event, options = {}) => {
      if (!validateSenderOrSettings(event)) return { ok: false, error: "Unauthorized IPC sender" };
@@ -1225,7 +1250,7 @@ index 0000000..ee58f59
 +});
 diff --git a/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
 new file mode 100644
-index 0000000..540a315
+index 0000000..c971c3c
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeSessionManager.cjs
 @@ -0,0 +1,221 @@
@@ -1423,7 +1448,7 @@ index 0000000..540a315
 +      } finally { clearTimeout(timer); await session.close(); }
 +    },
 +    async runTurn(ctx) {
-+      if (ctx.attachments?.length) throw new Error('Native scheme C currently accepts text prompts. Use a file path or Netcatty MCP to read an attachment.');
++      if (ctx.attachments?.length) throw new Error('OMP, Pi and DeepSeek Harness currently accept text prompts. Send a file path so the agent can read it through its tools.');
 +      if (ctx.toolIntegrationMode !== 'mcp') throw new Error('Native agents require MCP tool integration in Settings > AI > Tools.');
 +      let session = sessions.get(ctx.chatSessionId);
 +      if (session && (session.engine !== engine || session.key !== fingerprint(ctx))) { await session.close(); session = null; }
@@ -1725,23 +1750,10 @@ index dea559b..a13ba8f 100644
  }
  
 diff --git a/electron/main.cjs b/electron/main.cjs
-index 9656587..32280fb 100644
+index 9656587..cf9965d 100644
 --- a/electron/main.cjs
 +++ b/electron/main.cjs
-@@ -689,7 +689,11 @@ async function createAndShowMainWindow() {
-   return mainWindowStartupPromise;
- }
- 
--let sshDeepLinkEnabled = readSshDeepLinkEnabledPreference({ app });
-+let sshDeepLinkEnabled = readSshDeepLinkEnabledPreference({
-+  app,
-+  // The separate C1 preview should not take over the installed app's URL handlers.
-+  defaultWhenMissing: app.getName() !== "netcatty-c1",
-+});
- // PuTTY-style CLI args (-ssh user@host -P 22 -pw pass) are an explicit launch
- // method for bastion/PAM callers (#3044). They must connect even when Netcatty
- // is not the registered ssh:// protocol client (or that registration failed),
-@@ -1618,12 +1622,12 @@ if (!gotLock) {
+@@ -1618,12 +1618,12 @@ if (!gotLock) {
      }
      getWindowManager().setIsQuitting(true);
      quitGuardChannelBusy = true;
@@ -2653,7 +2665,7 @@ index 0000000..eb0eed9
 +module.exports = { createNativeModelService };
 diff --git a/scripts/native-profile.live.cjs b/scripts/native-profile.live.cjs
 new file mode 100644
-index 0000000..e1bcb67
+index 0000000..d84d961
 --- /dev/null
 +++ b/scripts/native-profile.live.cjs
 @@ -0,0 +1,36 @@
@@ -2682,7 +2694,7 @@ index 0000000..e1bcb67
 +        key:JSON.parse(localStorage.getItem('netcatty_keys_v1')).some(x=>x.id==='c1-retained-key'),
 +        chat:JSON.parse(localStorage.getItem('netcatty_ai_sessions_v1')).some(x=>x.id==='c1-retained-chat'),
 +        codex:JSON.parse(localStorage.getItem('netcatty_ai_external_agents_v1')).some(x=>x.id==='retained-codex'),
-+        setting:localStorage.getItem('netcatty_term_font_size_v1')==='15',
++        setting:Number.parseInt(localStorage.getItem('netcatty_term_font_size_v1'),10)===15,
 +        credential:(await window.netcatty.credentialsDecrypt(localStorage.getItem('netcatty_c1_acceptance_cipher')))==='synthetic-acceptance-secret',
 +        dpapi:localStorage.getItem('netcatty_c1_acceptance_cipher').startsWith('enc:v1:')
 +      }))()`);
@@ -2695,12 +2707,13 @@ index 0000000..e1bcb67
 +})().catch(error => { console.error(error); process.exitCode = 1; });
 diff --git a/scripts/patch1183-files.json b/scripts/patch1183-files.json
 new file mode 100644
-index 0000000..44a410a
+index 0000000..3182e75
 --- /dev/null
 +++ b/scripts/patch1183-files.json
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,18 @@
 +[
 +  "electron/bridges/aiBridge.cjs",
++  "electron/bridges/aiBridge/agentCliHelpers.cjs",
 +  "electron/bridges/aiBridge/agentDiscoveryHandlers.cjs",
 +  "electron/bridges/aiBridge/sdk/dshNativeDriver.cjs",
 +  "electron/bridges/aiBridge/sdk/index.cjs",
@@ -2718,10 +2731,10 @@ index 0000000..44a410a
 +]
 diff --git a/scripts/windows-1183-acceptance.ps1 b/scripts/windows-1183-acceptance.ps1
 new file mode 100644
-index 0000000..52a4d79
+index 0000000..afaca62
 --- /dev/null
 +++ b/scripts/windows-1183-acceptance.ps1
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,69 @@
 +param([string]$SourceDir, [string]$DeliveryDir)
 +$ErrorActionPreference = 'Stop'
 +$SourceDir = (Resolve-Path $SourceDir).Path
@@ -2772,6 +2785,12 @@ index 0000000..52a4d79
 +    Start-Netcatty
 +    Run-Node 'native-profile.live.cjs' 'verify'
 +    Run-Node 'native-agents.ui.live.cjs'
++    Run-Node 'native-agents.electron.live.cjs'
++    # Also exercise the npm-style Pi .cmd, beside the standalone installer shim.
++    $Entries = Get-Content (Join-Path $env:NETCATTY_NATIVE_RUNTIME 'engines.json') -Raw | ConvertFrom-Json
++    $Entries.pi = (Resolve-Path (Join-Path $env:NETCATTY_NATIVE_RUNTIME 'runtime\node_modules\.bin\pi.cmd')).Path
++    $Entries | ConvertTo-Json | Set-Content (Join-Path $env:NETCATTY_NATIVE_RUNTIME 'engines.json') -Encoding UTF8
++    $env:NATIVE_ENGINES = 'pi'
 +    Run-Node 'native-agents.electron.live.cjs'
 +    Stop-Netcatty
 +    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Patch -Action rollback -InstallDir $Trial; Assert-Exit 'Patch rollback'
