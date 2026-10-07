@@ -10,7 +10,7 @@ foreach ($action in @('check','apply','rollback')) {
 }
 # Apply only to a disposable copy of the official build, never to a user install.
 Copy-Item official trial -Recurse
-$manifest = Get-Content patch-output/manifest.json -Raw | ConvertFrom-Json
+$manifest = Get-Content patch-output/manifest.json -Raw | ConvertFrom-Json -AsHashtable
 $manifest.status='accepted'
 $manifest | ConvertTo-Json -Depth 8 | Set-Content patch-output/manifest.json -Encoding utf8
 & patch-output/Patch.ps1 -Action check -InstallDir trial
