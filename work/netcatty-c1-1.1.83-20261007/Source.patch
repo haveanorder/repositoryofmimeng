@@ -897,7 +897,7 @@ index 994da00..3e5f36f 100644
    assert.deepEqual(await getDriver("codex").listModels({}), []);
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.cjs b/electron/bridges/aiBridge/sdk/nativeCli.cjs
 new file mode 100644
-index 0000000..c5d2f2c
+index 0000000..cfbc962
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeCli.cjs
 @@ -0,0 +1,48 @@
@@ -914,10 +914,10 @@ index 0000000..c5d2f2c
 +  const shim = fs.readFileSync(command, 'utf8');
 +  const script = shim.match(/"%~dp0([^"\r\n]+\.[cm]?js)"/i) || shim.match(/"%dp0%([^"\r\n]+\.[cm]?js)"/i);
 +  if (script) {
-+    const entry = path.resolve(path.dirname(command), script[1].replace(/[\\/]/g, path.sep));
++    const entry = path.resolve(path.dirname(command), script[1].replace(/^[\\/]+/, '').replace(/[\\/]/g, path.sep));
 +    if (fs.existsSync(entry)) {
 +      const node = shim.match(/"%~dp0([^"\r\n]*node\.exe)"/i) || shim.match(/"%dp0%([^"\r\n]*node\.exe)"/i);
-+      const runtime = node && path.resolve(path.dirname(command), node[1].replace(/[\\/]/g, path.sep));
++      const runtime = node && path.resolve(path.dirname(command), node[1].replace(/^[\\/]+/, '').replace(/[\\/]/g, path.sep));
 +      const resolved = fs.realpathSync(entry);
 +      if (runtime && fs.existsSync(runtime)) shimRuntimes.set(resolved, runtime);
 +      return resolved;
@@ -951,10 +951,10 @@ index 0000000..c5d2f2c
 +module.exports = { nativeEntry, prepareNativeCommand, installedNativePath };
 diff --git a/electron/bridges/aiBridge/sdk/nativeCli.test.cjs b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
 new file mode 100644
-index 0000000..77691ac
+index 0000000..43e2d73
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeCli.test.cjs
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,40 @@
 +"use strict";
 +const test = require('node:test');
 +const assert = require('node:assert/strict');
@@ -988,9 +988,11 @@ index 0000000..77691ac
 +    fs.writeFileSync(entry, '');
 +    const runtime = path.join(root, 'node.exe');
 +    fs.writeFileSync(runtime, '');
-+    fs.writeFileSync(shim, '@echo off\r\n"%~dp0node.exe" "%~dp0cli.js" %*');
-+    assert.equal(nativeEntry(shim, 'pi'), entry);
-+    assert.equal(prepareNativeCommand(entry, ['--version'], {}).command, runtime);
++    for (const prefix of ['%~dp0', '%dp0%\\']) {
++      fs.writeFileSync(shim, `@echo off\r\n"${prefix}node.exe" "${prefix}cli.js" %*`);
++      assert.equal(nativeEntry(shim, 'pi'), entry);
++      assert.equal(prepareNativeCommand(entry, ['--version'], {}).command, runtime);
++    }
 +  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 +});
 diff --git a/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs b/electron/bridges/aiBridge/sdk/nativeExtensions/controlled.mjs
