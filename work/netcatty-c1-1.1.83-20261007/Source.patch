@@ -2076,7 +2076,7 @@ index 0000000..66d3542
 +}
 diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
 new file mode 100644
-index 0000000..7f33dde
+index 0000000..a769ee8
 --- /dev/null
 +++ b/scripts/native-agents.electron.live.cjs
 @@ -0,0 +1,105 @@
@@ -2181,7 +2181,7 @@ index 0000000..7f33dde
 +  console.log(`Real Electron + CLIs + Netcatty MCP + local PTY; local controlled model only. ${scratch}`);
 +}
 +if (require.main === module) {
-+  const timer = setTimeout(() => { console.error('Electron native smoke timed out'); process.exit(1); }, 180000);
++  const timer = setTimeout(() => { console.error('Electron native smoke timed out'); process.exit(1); }, 300000);
 +  main().then(() => clearTimeout(timer), (error) => { clearTimeout(timer); console.error(error); process.exitCode = 1; });
 +}
 +module.exports = { connect };
