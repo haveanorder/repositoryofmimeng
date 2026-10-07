@@ -2256,10 +2256,10 @@ index 0000000..41777ba
 +console.log(JSON.stringify({ patch: manifest.patch, modifiedFiles: files.length, originalUnpackedFilesReused: unpacked.length - files.length + 1 }));
 diff --git a/scripts/native-agents.electron.live.cjs b/scripts/native-agents.electron.live.cjs
 new file mode 100644
-index 0000000..2757dd6
+index 0000000..1dc52de
 --- /dev/null
 +++ b/scripts/native-agents.electron.live.cjs
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,126 @@
 +"use strict";
 +// Run against an isolated Netcatty Electron profile with --remote-debugging-port=9222.
 +const fs = require('node:fs/promises');
@@ -2333,7 +2333,11 @@ index 0000000..2757dd6
 +        let resume;
 +        const run = async (prompt) => {
 +          const requestId = crypto.randomUUID();
-+          const off = api.onAiSdkAgentEvent(requestId, (event) => { events.push(event); if(event.type==='session-id') resume=event.sessionId; });
++          const off = api.onAiSdkAgentEvent(requestId, (event) => {
++            events.push(event);
++            // Use the same persisted SDK identity that sdkAgentAdapter saves.
++            if(event.type==='session-id') resume='netcatty-sdk-session:'+encodeURIComponent(JSON.stringify({v:1,id:event.sessionId,backend:event.sdkBackend,binPath:event.binPath||'',runtime:event.runtime||'sdk'}));
++          });
 +          const offError = api.onAiSdkAgentError(requestId, (error) => events.push({type:'fatal',error}));
 +          try { const result = await api.aiSdkAgentStream(requestId, chat, config.engine, prompt, config.cwd, undefined, config.model, resume, [], undefined, 'mcp', undefined, undefined, config.env, config.bin, undefined, 'confirm'); if (!result.ok) throw Error(JSON.stringify(result)); }
 +          finally { off(); offError(); }
