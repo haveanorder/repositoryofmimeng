@@ -778,10 +778,10 @@ index f80085c..e99169a 100644
  
 diff --git a/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
 new file mode 100644
-index 0000000..06a758a
+index 0000000..58c7943
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/dshNativeDriver.cjs
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,73 @@
 +"use strict";
 +const { nativeDriver, resourcePath, writeSessionFile } = require('./nativeSessionManager.cjs');
 +
@@ -806,7 +806,8 @@ index 0000000..06a758a
 +    } };
 +  },
 +  async open(session) {
-+    await session.rpc.waitReady();
++    // DSH loads its SDK plugins and MCP servers before emitting readiness.
++    await session.rpc.waitReady(90000);
 +    const model = session.ctx.model || '';
 +    const separator = model.indexOf('/');
 +    const result = await session.rpc.request('initialize', {
@@ -1034,7 +1035,7 @@ index 0000000..0d96183
 +}
 diff --git a/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs b/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs
 new file mode 100644
-index 0000000..9da1315
+index 0000000..0f59136
 --- /dev/null
 +++ b/electron/bridges/aiBridge/sdk/nativeRpcConnection.cjs
 @@ -0,0 +1,156 @@
@@ -1146,14 +1147,14 @@ index 0000000..9da1315
 +      try { this.send({ ...data, id, type }); } catch (error) { clearTimeout(timer); this.pending.delete(id); reject(error); }
 +    });
 +  }
-+  waitReady() {
++  waitReady(timeoutMs = 30000) {
 +    if (this.ready) return Promise.resolve(this.ready);
 +    if (this.failure) return Promise.reject(this.failure);
 +    return new Promise((resolve, reject) => {
 +      const done = (error, value) => { clearTimeout(timer); this.off('ready', ready); this.off('fatal', fatal); error ? reject(error) : resolve(value); };
 +      const ready = (value) => done(null, value);
 +      const fatal = (error) => done(error);
-+      const timer = setTimeout(() => done(new Error(`${this.engine} did not become ready. ${this.stderr}`)), 30000);
++      const timer = setTimeout(() => done(new Error(`${this.engine} did not become ready. ${this.stderr}`)), timeoutMs);
 +      this.once('ready', ready); this.once('fatal', fatal);
 +    });
 +  }
